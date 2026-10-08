@@ -126,7 +126,9 @@ async function performSearch(gameName, tagLine, region) {
     const res = await fetch(`/api/deaths/${region}/${gameName}/${tagLine}`);
 
     if (!res.ok) {
-        document.getElementById('deathList').textContent = 'Could not find that summoner. Check the name and tag.';
+        const deathListEl = document.getElementById('deathList');
+        deathListEl.textContent = 'Could not find that summoner. Check the name and tag.';
+        deathListEl.style.display = 'block';
         searchBtn.disabled = false;
         searchBtn.textContent = 'Search';
         loadingOverlay.style.display = 'none';
@@ -152,8 +154,11 @@ canvas.addEventListener('mousemove', (e) => {
     if (currentMode !== 'dots') return;
 
     const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+    const scale = canvas.width / rect.width;
+    const cssX = e.clientX - rect.left;
+    const cssY = e.clientY - rect.top;
+    const mouseX = cssX * scale;
+    const mouseY = cssY * scale;
 
     let closest = null;
     let closestDist = Infinity;
@@ -179,11 +184,11 @@ canvas.addEventListener('mousemove', (e) => {
         const tooltipWidth = tooltip.offsetWidth;
         const tooltipHeight = tooltip.offsetHeight;
 
-        let left = mouseX + 10;
-        let top = mouseY + 10;
+        let left = cssX + 10;
+        let top = cssY + 10;
 
-        if (left + tooltipWidth > canvas.width) left = mouseX - tooltipWidth - 10;
-        if (top + tooltipHeight > canvas.height) top = mouseY - tooltipHeight - 10;
+        if (left + tooltipWidth > rect.width) left = cssX - tooltipWidth - 10;
+        if (top + tooltipHeight > rect.height) top = cssY - tooltipHeight - 10;
 
         tooltip.style.left = `${left}px`;
         tooltip.style.top = `${top}px`;

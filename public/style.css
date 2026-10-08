@@ -7,7 +7,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 40px 20px;
+    padding: 0 20px 40px;
 }
 
 h1 {
@@ -23,6 +23,7 @@ h1 {
 .search-bar {
     display: flex;
     gap: 8px;
+    margin-top: 24px;
     margin-bottom: 24px;
 }
 
@@ -54,17 +55,26 @@ h1 {
 
 .map-container {
     position: relative;
-    width: 512px;
-    height: 512px;
+    width: min(720px, 90vw);
+    aspect-ratio: 1;
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 4px 20px rgba(0,0,0,0.4);
 }
 
+.map-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
 #deathList {
     display: none;
     margin-top: 20px;
-    width: 512px;
+    width: 100%;
+    box-sizing: border-box;
     max-height: 200px;
     overflow-y: auto;
     background: #2a2a32;
@@ -74,13 +84,13 @@ h1 {
     line-height: 1.5;
 }
 
-.legend {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 512px;
-    margin-top: 12px;
-    font-size: 12px;
+.legend { 
+    width: 100%; 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    margin-top: 12px; 
+    font-size: 12px; 
     color: #aaa;
 }
 
@@ -176,30 +186,32 @@ h1 {
 
 .page-layout {
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
     gap: 16px;
 }
 
 .sidebar {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    width: 100%;
-    max-width: 512px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 240px;
 }
 
 .stat-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     background: #22201c;
     border: 1px solid #3a352c;
     border-radius: 12px;
-    padding: 16px;
+    padding: 12px 16px;
 }
 
-.stat-label {
-    font-size: 12px;
-    color: #aaa;
-    margin: 0 0 4px;
+.stat-label { 
+    margin: 0; 
 }
 
 .stat-value {
@@ -246,7 +258,7 @@ h1 {
 
 .summoner-info {
     text-align: left;
-    max-width: 512px;
+    max-width: 1000px;
     width: 100%;
     background: #22201c;
     border: 1px solid #3a352c;
