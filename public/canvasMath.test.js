@@ -13,6 +13,15 @@ describe('gameToCanvas', () => {
     expect(canvasX).toBeCloseTo(512);
     expect(canvasY).toBeCloseTo(0);
   });
+  it('maps the map center to the canvas center', () => {
+      const { canvasX, canvasY } = gameToCanvas(7375, 7430);
+      expect(canvasX).toBeCloseTo(256, 0);
+      expect(canvasY).toBeCloseTo(256, 0);
+  });
+
+  it('flips Y so high game Y is near the canvas top', () => {
+      expect(gameToCanvas(0, 14980).canvasY).toBeCloseTo(0, 0);
+  });
 });
 
 describe('intensityToColor', () => {
@@ -22,5 +31,12 @@ describe('intensityToColor', () => {
 
   it('returns red at 255', () => {
     expect(intensityToColor(255)).toEqual([255, 0, 0]);
+  });
+  it('returns green at 85', () => {
+    expect(intensityToColor(85)).toEqual([0, 255, 0]);
+  });
+
+  it('returns yellow at 170', () => {
+      expect(intensityToColor(170)).toEqual([255, 255, 0]);
   });
 });
