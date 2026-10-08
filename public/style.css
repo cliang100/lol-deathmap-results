@@ -279,3 +279,23 @@ h1 {
     color: #aaa;
     margin: 4px 0 0;
 }
+
+.top-bar {
+    display: flex;
+    align-items: center;
+    width: calc(100% + 40px);
+    margin: 0 -20px;
+    box-sizing: border-box;
+    height: 56px;
+    padding: 0 24px;
+    background: #1A1712;
+    border-bottom: 1px solid #2E2A22;
+}
+
+.top-bar-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 20px;
+    letter-spacing: 1px;
+    color: #E8B34C;
+    text-decoration: none;
+}
