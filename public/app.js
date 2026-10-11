@@ -77,6 +77,13 @@ function renderDots(deaths, hoveredDeath = null) {
 
 
 function renderSearchResults(deaths) {
+    const [name, tag] = document.getElementById('riotId').value.split('#').map(s => s.trim());
+    const regionSelect = document.getElementById('region');
+
+    document.getElementById('summonerName').textContent = `${name}#${tag}`;
+    document.getElementById('summonerRegion').textContent =
+        regionSelect.options[regionSelect.selectedIndex].text;
+
     const matchCount = new Set(deaths.map(d => d.matchId)).size;
 
     const killerCounts = {};
@@ -97,6 +104,7 @@ function renderSearchResults(deaths) {
     document.getElementById('mostCommonKillerStat').textContent = topKiller;
 
     lastDeaths = deaths;
+    if (currentMode === 'dots') renderDots(deaths); else renderHeatmap(deaths);
     renderHeatmap(deaths);
 
     const deathListEl = document.getElementById('deathList');
@@ -110,8 +118,9 @@ function renderSearchResults(deaths) {
 
 
 async function performSearch(gameName, tagLine, region) {
+    const deathListEl = document.getElementById('deathList');
+
     if (!gameName || !tagLine) {
-        const deathListEl = document.getElementById('deathList');
         deathListEl.textContent = 'Enter a Riot ID like Name#Tag';
         deathListEl.style.display = 'block';
         return;
@@ -119,28 +128,30 @@ async function performSearch(gameName, tagLine, region) {
 
     searchBtn.disabled = true;
     searchBtn.textContent = 'Loading...';
-    
-    const loadingOverlay = document.getElementById("loading-overlay");
-    loadingOverlay.style.display = 'block'
 
-    const res = await fetch(`/api/deaths/${region}/${gameName}/${tagLine}`);
+    const loadingOverlay = document.getElementById('loading-overlay');
+    loadingOverlay.style.display = 'block';
 
-    if (!res.ok) {
-        const deathListEl = document.getElementById('deathList');
-        deathListEl.textContent = 'Could not find that summoner. Check the name and tag.';
+    try {
+        const res = await fetch(`/api/deaths/${region}/${gameName}/${tagLine}`);
+
+        if (!res.ok) {
+            deathListEl.textContent = 'Could not find that summoner. Check the name and tag.';
+            deathListEl.style.display = 'block';
+            return;
+        }
+
+        const deaths = await res.json();
+        renderSearchResults(deaths);
+    } catch (err) {
+        console.error(err);
+        deathListEl.textContent = 'Could not reach the server.';
         deathListEl.style.display = 'block';
+    } finally {
         searchBtn.disabled = false;
         searchBtn.textContent = 'Search';
         loadingOverlay.style.display = 'none';
-        return;
     }
-
-    const deaths = await res.json();
-    renderSearchResults(deaths);
-
-    searchBtn.disabled = false;
-    searchBtn.textContent = 'Search';
-    loadingOverlay.style.display = 'none'
 }
 
 searchBtn.addEventListener('click', () => {
