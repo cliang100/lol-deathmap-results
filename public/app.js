@@ -75,14 +75,34 @@ function renderDots(deaths, hoveredDeath = null) {
     ctx.shadowBlur = 0;
 }
 
+let ddVersion = null;
+async function getDdVersion() {
+    if (!ddVersion) {
+        const res = await fetch('https://ddragon.leagueoflegends.com/api/versions.json');
+        ddVersion = (await res.json())[0];
+    }
+    return ddVersion;
+}
 
-function renderSearchResults(deaths) {
-    const [name, tag] = document.getElementById('riotId').value.split('#').map(s => s.trim());
+async function renderProfile(profile) {
+    document.getElementById('summonerName').textContent = `${profile.name}#${profile.tag}`;
+    document.getElementById('summonerLevel').textContent = `Level ${profile.level}`;
+
+    const r = profile.rank;
+    document.getElementById('summonerRank').textContent = r
+        ? `${r.tier} ${r.division} · ${r.lp} LP · ${r.wins}W ${r.losses}L`
+        : 'Unranked';
+
+    const v = await getDdVersion();
+    document.getElementById('summonerIcon').src =
+        `https://ddragon.leagueoflegends.com/cdn/${v}/img/profileicon/${profile.iconId}.png`;
+}
+
+function renderSearchResults({ profile, deaths }) {
     const regionSelect = document.getElementById('region');
-
-    document.getElementById('summonerName').textContent = `${name}#${tag}`;
     document.getElementById('summonerRegion').textContent =
         regionSelect.options[regionSelect.selectedIndex].text;
+    renderProfile(profile);
 
     const matchCount = new Set(deaths.map(d => d.matchId)).size;
 
@@ -105,7 +125,6 @@ function renderSearchResults(deaths) {
 
     lastDeaths = deaths;
     if (currentMode === 'dots') renderDots(deaths); else renderHeatmap(deaths);
-    renderHeatmap(deaths);
 
     const deathListEl = document.getElementById('deathList');
     if (deaths.length === 0) {
@@ -141,8 +160,8 @@ async function performSearch(gameName, tagLine, region) {
             return;
         }
 
-        const deaths = await res.json();
-        renderSearchResults(deaths);
+        const data = await res.json();
+        renderSearchResults(data);
     } catch (err) {
         console.error(err);
         deathListEl.textContent = 'Could not reach the server.';
@@ -233,17 +252,9 @@ const params = new URLSearchParams(window.location.search);
 const urlRiotId = params.get('riotId');
 const urlTag = params.get('tag');
 const urlRegion = params.get('region');
-const storedData = sessionStorage.getItem('deathData');
 
 if (urlRiotId && urlTag) {
     document.getElementById('riotId').value = `${urlRiotId}#${urlTag}`;
     document.getElementById('region').value = urlRegion || 'na1';
-
-    if (storedData) {
-        const deaths = JSON.parse(storedData);
-        sessionStorage.removeItem('deathData');
-        renderSearchResults(deaths);
-    } else {
-        performSearch(urlRiotId, urlTag, urlRegion || 'na1');
-    }
+    performSearch(urlRiotId, urlTag, urlRegion || 'na1');
 }

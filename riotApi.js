@@ -48,7 +48,34 @@ async function getDeathData(gameName, tagLine, region = 'na1') {
     const accountUrl = `https://${routing}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${gameName}/${tagLine}?api_key=${apiKey}`;
     const accountRes = await limitedFetch(accountUrl);
     const account = await accountRes.json();
+
+    if (!accountRes.ok) {
+        console.log('Account fetch failed:', accountRes.status, account);
+        throw new Error(`Account not found: ${gameName}#${tagLine}`);
+    }
+
     const puuid = account.puuid;
+
+    const [summonerRes, rankRes] = await Promise.all([
+        limitedFetch(`https://${region}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${puuid}?api_key=${apiKey}`),
+        limitedFetch(`https://${region}.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}?api_key=${apiKey}`),
+    ]);
+    const summoner = await summonerRes.json();
+    const entries = await rankRes.json();
+
+    const solo = Array.isArray(entries)
+        ? entries.find(e => e.queueType === 'RANKED_SOLO_5x5')
+        : null;
+
+    const profile = {
+        name: account.gameName,
+        tag: account.tagLine,
+        level: summoner.summonerLevel,
+        iconId: summoner.profileIconId,
+        rank: solo
+            ? { tier: solo.tier, division: solo.rank, lp: solo.leaguePoints, wins: solo.wins, losses: solo.losses }
+            : null,
+    };
 
     const idsUrl = `https://${routing}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=20&api_key=${apiKey}`;
     const idsRes = await limitedFetch(idsUrl);
@@ -120,8 +147,9 @@ async function getDeathData(gameName, tagLine, region = 'na1') {
         });
     }
 
-    await redis.set(cacheKey, allDeaths, { ex: 300 });
-    return allDeaths;
+    const result = { profile, deaths: allDeaths };
+    await redis.set(cacheKey, result, { ex: 300 });
+    return result;
 }
 
 
@@ -129,8 +157,8 @@ module.exports = { getDeathData };
 
 if (require.main === module) {
     console.time('getDeathData');
-    getDeathData('Senyuuto', 'FAKER').then(deaths => {
-        console.log(deaths);
+    getDeathData('Senyuuto', 'FAKER').then(result => {
+        console.log(result);
         console.timeEnd('getDeathData');
     });
 }

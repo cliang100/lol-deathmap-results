@@ -257,6 +257,9 @@ h1 {
 }
 
 .summoner-info {
+    display: flex;
+    gap: 12px;
+    align-items: center;
     text-align: left;
     max-width: 1000px;
     width: 100%;
@@ -278,6 +281,27 @@ h1 {
     font-size: 13px;
     color: #aaa;
     margin: 4px 0 0;
+}
+
+#summonerIcon {
+    width: 64px;
+    height: 64px;
+    border-radius: 8px;
+}
+
+#summonerIcon:not([src]) {
+    display: none;
+}
+
+.summoner-level,
+.summoner-rank {
+    font-size: 13px;
+    color: #aaa;
+    margin: 4px 0 0;
+}
+
+.summoner-rank {
+    color: #E8B34C;
 }
 
 .top-bar {
