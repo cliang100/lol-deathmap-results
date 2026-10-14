@@ -11,8 +11,8 @@ export function gameToCanvas(x, y, canvasSize = 512) {
 export function intensityToColor(alpha) {
     const stops = [
         [0, [0, 0, 255]],
-        [170, [0, 255, 0]],
-        [85, [255, 255, 0]],
+        [85, [0, 255, 0]],
+        [170, [255, 255, 0]],
         [255, [255, 0, 0]],
     ];
 
