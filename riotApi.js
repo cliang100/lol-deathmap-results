@@ -154,11 +154,3 @@ async function getDeathData(gameName, tagLine, region = 'na1') {
 
 
 module.exports = { getDeathData };
-
-if (require.main === module) {
-    console.time('getDeathData');
-    getDeathData('Senyuuto', 'FAKER').then(result => {
-        console.log(result);
-        console.timeEnd('getDeathData');
-    });
-}
