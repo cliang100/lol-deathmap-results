@@ -7,7 +7,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "lint": "oxlint",
-    "test": "vitest"
+    "test": "vitest run"
   },
   "keywords": [],
   "author": "",

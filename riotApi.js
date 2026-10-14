@@ -153,4 +153,4 @@ async function getDeathData(gameName, tagLine, region = 'na1') {
 }
 
 
-module.exports = { getDeathData };
+module.exports = { getDeathData, msToClock };
