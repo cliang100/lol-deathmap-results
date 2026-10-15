@@ -12,7 +12,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "dependencies": {
     "@upstash/redis": "^1.38.4",
     "bottleneck": "^2.19.5",

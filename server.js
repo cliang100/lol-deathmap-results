@@ -1,6 +1,6 @@
-const express = require('express');
-const { getDeathData } = require('./riotApi');
-const cors = require('cors');
+import express from 'express';
+import { getDeathData } from './riotApi.js';
+import cors from 'cors';
 
 const app = express();
 const PORT = 3000;

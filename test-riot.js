@@ -1,4 +1,4 @@
-require('dotenv').config();
+import 'dotenv/config';
 
 const apiKey = process.env.RIOT_API_KEY;
 const puuid = process.env.PUUID;

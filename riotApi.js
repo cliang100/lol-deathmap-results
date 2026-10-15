@@ -1,11 +1,12 @@
-require('dotenv').config();
+import 'dotenv/config';
 
-const { Redis } = require('@upstash/redis')
+import { Redis } from '@upstash/redis';
+import Bottleneck from 'bottleneck';
+
 const redis = new Redis({
     url: process.env.UPSTASH_REDIS_REST_URL,
     token: process.env.UPSTASH_REDIS_REST_TOKEN,
 });
-const Bottleneck = require('bottleneck');
 const apiKey = process.env.RIOT_API_KEY;
 
 const regionToRouting = {
@@ -28,7 +29,7 @@ function limitedFetch(url) {
 }
 
 
-function msToClock(ms) {
+export function msToClock(ms) {
     const totalSeconds = Math.floor(ms / 1000);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
@@ -36,7 +37,7 @@ function msToClock(ms) {
 }
 
 
-async function getDeathData(gameName, tagLine, region = 'na1') {
+export async function getDeathData(gameName, tagLine, region = 'na1') {
     const routing = regionToRouting[region] || 'americas';
     const cacheKey = `${gameName}#${tagLine}#${region}`.toLowerCase();
     const cached = await redis.get(cacheKey);
@@ -151,6 +152,3 @@ async function getDeathData(gameName, tagLine, region = 'na1') {
     await redis.set(cacheKey, result, { ex: 300 });
     return result;
 }
-
-
-module.exports = { getDeathData, msToClock };
