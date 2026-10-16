@@ -144,6 +144,8 @@ export async function getDeathData(gameName, tagLine, region = 'na1') {
         matches.push({
             matchId,
             championName: me.championName,
+            teamId: me.teamId,
+            items: [me.item0, me.item1, me.item2, me.item3, me.item4, me.item5, me.item6],
             win: me.win,
             kills: me.kills,
             deaths: me.deaths,

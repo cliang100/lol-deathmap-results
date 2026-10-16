@@ -103,7 +103,7 @@ describe('getDeathData', () => {
         gameDuration: 1800,
         gameCreation: 1700000000000,
         participants: [
-          { puuid: PUUID, participantId: 1, championName: 'Ahri', win: true, kills: 5, deaths: 1, assists: 7, totalMinionsKilled: 180, neutralMinionsKilled: 20 },
+          { puuid: PUUID, participantId: 1, championName: 'Ahri', teamId: 100, item0: 6653, item1: 3020, item2: 3089, item3: 0, item4: 0, item5: 0, item6: 3340, win: true, kills: 5, deaths: 1, assists: 7, totalMinionsKilled: 180, neutralMinionsKilled: 20 },
           { puuid: 'other-puuid', participantId: 2, championName: 'Zed', win: false, kills: 1, deaths: 5, assists: 0, totalMinionsKilled: 150, neutralMinionsKilled: 10 },
         ],
       },
@@ -153,7 +153,7 @@ describe('getDeathData', () => {
       { time: '1:05', x: 1000, y: 2000, killedBy: 'Zed', matchId },
     ]);
     expect(result.matches).toEqual([
-      { matchId, championName: 'Ahri', win: true, kills: 5, deaths: 1, assists: 7, cs: 200, gameDuration: 1800, gameCreation: 1700000000000 },
+      { matchId, championName: 'Ahri', teamId: 100, items: [6653, 3020, 3089, 0, 0, 0, 3340], win: true, kills: 5, deaths: 1, assists: 7, cs: 200, gameDuration: 1800, gameCreation: 1700000000000 },
     ]);
     expect(redisSet).toHaveBeenCalledWith(
       'testname#t1#na1',
