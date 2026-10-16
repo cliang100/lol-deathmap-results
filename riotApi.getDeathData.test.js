@@ -100,9 +100,11 @@ describe('getDeathData', () => {
     const match = {
       info: {
         mapId: 11,
+        gameDuration: 1800,
+        gameCreation: 1700000000000,
         participants: [
-          { puuid: PUUID, participantId: 1, championName: 'Ahri' },
-          { puuid: 'other-puuid', participantId: 2, championName: 'Zed' },
+          { puuid: PUUID, participantId: 1, championName: 'Ahri', win: true, kills: 5, deaths: 1, assists: 7, totalMinionsKilled: 180, neutralMinionsKilled: 20 },
+          { puuid: 'other-puuid', participantId: 2, championName: 'Zed', win: false, kills: 1, deaths: 5, assists: 0, totalMinionsKilled: 150, neutralMinionsKilled: 10 },
         ],
       },
     };
@@ -149,6 +151,9 @@ describe('getDeathData', () => {
     });
     expect(result.deaths).toEqual([
       { time: '1:05', x: 1000, y: 2000, killedBy: 'Zed', matchId },
+    ]);
+    expect(result.matches).toEqual([
+      { matchId, championName: 'Ahri', win: true, kills: 5, deaths: 1, assists: 7, cs: 200, gameDuration: 1800, gameCreation: 1700000000000 },
     ]);
     expect(redisSet).toHaveBeenCalledWith(
       'testname#t1#na1',

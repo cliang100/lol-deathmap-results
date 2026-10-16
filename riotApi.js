@@ -135,10 +135,23 @@ export async function getDeathData(gameName, tagLine, region = 'na1') {
 
     const validResults = timelineResults.filter(result => result !== null);
     const allDeaths = [];
+    const matches = [];
 
     for (const { matchId, match, timeline } of validResults) {
         const me = match.info.participants.find(p => p.puuid === puuid);
         const myId = me.participantId;
+
+        matches.push({
+            matchId,
+            championName: me.championName,
+            win: me.win,
+            kills: me.kills,
+            deaths: me.deaths,
+            assists: me.assists,
+            cs: (me.totalMinionsKilled ?? 0) + (me.neutralMinionsKilled ?? 0),
+            gameDuration: match.info.gameDuration,
+            gameCreation: match.info.gameCreation,
+        });
 
         const idToChamp = {};
         match.info.participants.forEach(p => {
@@ -162,7 +175,7 @@ export async function getDeathData(gameName, tagLine, region = 'na1') {
         });
     }
 
-    const result = { profile, deaths: allDeaths };
+    const result = { profile, matches, deaths: allDeaths };
     await redis.set(cacheKey, result, { ex: 300 });
     return result;
 }
