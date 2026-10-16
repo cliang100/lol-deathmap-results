@@ -323,3 +323,38 @@ h1 {
     color: #E8B34C;
     text-decoration: none;
 }
+
+.match-history {
+    width: 240px;
+    max-height: 320px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.match-history .match-row:first-child {
+    position: sticky;
+    top: 0;
+}
+
+.match-row {
+    background: #22201c;
+    border: 1px solid #3a352c;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.match-row.selected {
+    border-color: #E8B34C;
+}
+
+.match-win {
+    color: #4caf50;
+}
+
+.match-loss {
+    color: #f44336;
+}

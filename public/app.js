@@ -5,7 +5,15 @@ const searchBtn = document.getElementById('searchBtn');
 const canvas = document.getElementById('heatmapCanvas');
 const ctx = canvas.getContext('2d');
 let lastDeaths = []
+let lastMatches = [];
+let selectedMatchId = null;
 let currentMode = 'heatmap';
+
+function formatDuration(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${String(s).padStart(2, '0')}`;
+}
 
 
 function renderHeatmap(deaths) {
@@ -99,11 +107,55 @@ async function renderProfile(profile) {
         `https://ddragon.leagueoflegends.com/cdn/${v}/img/profileicon/${profile.iconId}.png`;
 }
 
-function renderSearchResults({ profile, deaths }) {
+function renderSearchResults({ profile, matches, deaths }) {
     const regionSelect = document.getElementById('region');
     document.getElementById('summonerRegion').textContent =
         regionSelect.options[regionSelect.selectedIndex].text;
     renderProfile(profile);
+
+    lastDeaths = deaths;
+    lastMatches = matches || [];
+    selectedMatchId = null;
+    renderMatchHistory();
+    renderSelection();
+}
+
+function renderMatchHistory() {
+    const listEl = document.getElementById('matchHistory');
+    listEl.innerHTML = '';
+
+    const allRow = document.createElement('div');
+    allRow.className = 'match-row' + (selectedMatchId === null ? ' selected' : '');
+    allRow.textContent = 'All games';
+    allRow.addEventListener('click', () => selectMatch(null));
+    listEl.appendChild(allRow);
+
+    for (const match of lastMatches) {
+        const row = document.createElement('div');
+        row.className = 'match-row' + (selectedMatchId === match.matchId ? ' selected' : '');
+        const result = document.createElement('span');
+        result.textContent = match.win ? 'Win' : 'Loss';
+        result.className = match.win ? 'match-win' : 'match-loss';
+        row.append(match.championName + ' ', result, ` ${match.kills}/${match.deaths}/${match.assists} ${match.cs} CS ${formatDuration(match.gameDuration)}`);
+        row.addEventListener('click', () => selectMatch(match.matchId));
+        listEl.appendChild(row);
+    }
+}
+
+function selectMatch(matchId) {
+    selectedMatchId = matchId;
+    renderMatchHistory();
+    renderSelection();
+}
+
+function currentDeaths() {
+    return selectedMatchId === null
+        ? lastDeaths
+        : lastDeaths.filter(d => d.matchId === selectedMatchId);
+}
+
+function renderSelection() {
+    const deaths = currentDeaths();
 
     const { matchCount, topKiller } = computeDeathStats(deaths);
 
@@ -111,7 +163,6 @@ function renderSearchResults({ profile, deaths }) {
     document.getElementById('gamesAnalyzedStat').textContent = matchCount;
     document.getElementById('mostCommonKillerStat').textContent = topKiller;
 
-    lastDeaths = deaths;
     if (currentMode === 'dots') renderDots(deaths); else renderHeatmap(deaths);
 
     const deathListEl = document.getElementById('deathList');
@@ -188,7 +239,8 @@ canvas.addEventListener('mousemove', (e) => {
     let closest = null;
     let closestDist = Infinity;
 
-    for (const death of lastDeaths) {
+    const deaths = currentDeaths();
+    for (const death of deaths) {
         const { canvasX, canvasY } = gameToCanvas(death.x, death.y);
         const dist = Math.hypot(mouseX - canvasX, mouseY - canvasY);
         if (dist < closestDist) {
@@ -200,7 +252,7 @@ canvas.addEventListener('mousemove', (e) => {
     const tooltip = document.getElementById('dotTooltip');
     const hovered = closest && closestDist < 10 ? closest : null;
 
-    renderDots(lastDeaths, hovered);
+    renderDots(deaths, hovered);
 
     if (hovered) {
         tooltip.textContent = `${hovered.time} - killed by ${hovered.killedBy}`;
@@ -233,14 +285,14 @@ document.getElementById('heatmapModeBtn').addEventListener('click', () => {
     document.getElementById('heatmapModeBtn').classList.add('active');
     document.getElementById('dotsModeBtn').classList.remove('active');
     document.getElementById('dotTooltip').style.display = 'none';
-    renderHeatmap(lastDeaths);
+    renderHeatmap(currentDeaths());
 });
 
 document.getElementById('dotsModeBtn').addEventListener('click', () => {
     currentMode = 'dots';
     document.getElementById('dotsModeBtn').classList.add('active');
     document.getElementById('heatmapModeBtn').classList.remove('active');
-    renderDots(lastDeaths);
+    renderDots(currentDeaths());
 });
 
 const params = new URLSearchParams(window.location.search);
