@@ -52,7 +52,14 @@ export async function getDeathData(gameName, tagLine, region = 'na1') {
 
     if (!accountRes.ok) {
         console.log('Account fetch failed:', accountRes.status, account);
-        throw new Error(`Account not found: ${gameName}#${tagLine}`);
+        if (accountRes.status === 429) {
+            const err = new Error('Rate limited by Riot API. Please try again shortly.');
+            err.status = 429;
+            throw err;
+        }
+        const err = new Error(`Account not found: ${gameName}#${tagLine}`);
+        err.status = accountRes.status;
+        throw err;
     }
 
     const puuid = account.puuid;
@@ -84,7 +91,14 @@ export async function getDeathData(gameName, tagLine, region = 'na1') {
 
     if (!idsRes.ok) {
         console.log('MatchIds fetch failed:', idsRes.status, matchIds);
-        throw new Error(`Failed to fetch match list for ${gameName}#${tagLine}`);
+        if (idsRes.status === 429) {
+            const err = new Error('Rate limited by Riot API. Please try again shortly.');
+            err.status = 429;
+            throw err;
+        }
+        const err = new Error(`Failed to fetch match list for ${gameName}#${tagLine}`);
+        err.status = idsRes.status;
+        throw err;
     }
 
     const matchResults = await Promise.all(

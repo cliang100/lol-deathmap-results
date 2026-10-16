@@ -16,7 +16,13 @@ app.get('/api/deaths/:region/:gameName/:tagLine', async(req, res) => {
         res.json(deaths);
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Failed to fetch death data' });
+        if (err.status === 429) {
+            res.status(429).json({ error: err.message });
+        } else if (err.status === 404) {
+            res.status(404).json({ error: err.message });
+        } else {
+            res.status(500).json({ error: 'Failed to fetch death data' });
+        }
     }
 });
 

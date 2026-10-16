@@ -66,6 +66,35 @@ describe('getDeathData', () => {
     expect(redisSet).not.toHaveBeenCalled();
   });
 
+  it('throws a rate-limit error with status 429 when the account fetch is rate limited', async () => {
+    vi.stubGlobal(
+      'fetch',
+      routeFetch([['by-riot-id', jsonResponse({ message: 'rate limited' }, { ok: false, status: 429 })]])
+    );
+
+    const err = await getDeathData('Someone', 'EUW', 'euw1').catch(e => e);
+    expect(err.message).toBe('Rate limited by Riot API. Please try again shortly.');
+    expect(err.status).toBe(429);
+    expect(redisSet).not.toHaveBeenCalled();
+  });
+
+  it('throws a rate-limit error with status 429 when the match-list fetch is rate limited', async () => {
+    vi.stubGlobal(
+      'fetch',
+      routeFetch([
+        ['by-riot-id', jsonResponse({ puuid: PUUID, gameName: 'TestName', tagLine: 'T1' })],
+        ['summoners/by-puuid', jsonResponse({ summonerLevel: 100, profileIconId: 1 })],
+        ['entries/by-puuid', jsonResponse([])],
+        ['/ids?', jsonResponse({ message: 'rate limited' }, { ok: false, status: 429 })],
+      ])
+    );
+
+    const err = await getDeathData('TestName', 'T1', 'na1').catch(e => e);
+    expect(err.message).toBe('Rate limited by Riot API. Please try again shortly.');
+    expect(err.status).toBe(429);
+    expect(redisSet).not.toHaveBeenCalled();
+  });
+
   it('returns profile + deaths for one SR match and caches the result', async () => {
     const matchId = 'NA1_1';
     const match = {

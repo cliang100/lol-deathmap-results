@@ -140,10 +140,17 @@ async function performSearch(gameName, tagLine, region) {
     loadingOverlay.style.display = 'block';
 
     try {
-        const res = await fetch(`/api/deaths/${region}/${gameName}/${tagLine}`);
+        const res = await fetch(`/api/deaths/${region}/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`);
 
         if (!res.ok) {
-            deathListEl.textContent = 'Could not find that summoner. Check the name and tag.';
+            let message = 'Could not find that summoner. Check the name and tag.';
+            try {
+                const errBody = await res.json();
+                if (errBody && errBody.error) message = errBody.error;
+            } catch {
+                // keep the default message if the error body isn't JSON
+            }
+            deathListEl.textContent = message;
             deathListEl.style.display = 'block';
             return;
         }
