@@ -120,24 +120,75 @@ function renderSearchResults({ profile, matches, deaths }) {
     renderSelection();
 }
 
-function renderMatchHistory() {
+function hideOnError(img) {
+    img.addEventListener('error', () => img.remove());
+}
+
+async function renderMatchHistory() {
     const listEl = document.getElementById('matchHistory');
     listEl.innerHTML = '';
 
     const allRow = document.createElement('div');
-    allRow.className = 'match-row' + (selectedMatchId === null ? ' selected' : '');
+    allRow.className = 'match-row match-all' + (selectedMatchId === null ? ' selected' : '');
     allRow.textContent = 'All games';
     allRow.addEventListener('click', () => selectMatch(null));
     listEl.appendChild(allRow);
 
+    const v = await getDdVersion();
+
     for (const match of lastMatches) {
         const row = document.createElement('div');
-        row.className = 'match-row' + (selectedMatchId === match.matchId ? ' selected' : '');
+        row.className = 'match-row' + (match.win ? ' win' : ' loss') +
+            (selectedMatchId === match.matchId ? ' selected' : '');
+        row.addEventListener('click', () => selectMatch(match.matchId));
+
+        const champIcon = document.createElement('img');
+        champIcon.className = 'match-champ-icon';
+        champIcon.alt = match.championName;
+        champIcon.src = `https://ddragon.leagueoflegends.com/cdn/${v}/img/champion/${match.championName}.png`;
+        hideOnError(champIcon);
+        row.appendChild(champIcon);
+
+        const main = document.createElement('div');
+        main.className = 'match-main';
+
+        const topLine = document.createElement('div');
+        topLine.className = 'match-top-line';
+        const champName = document.createElement('span');
+        champName.className = 'match-champ-name';
+        champName.textContent = match.championName;
+        topLine.appendChild(champName);
         const result = document.createElement('span');
         result.textContent = match.win ? 'Win' : 'Loss';
         result.className = match.win ? 'match-win' : 'match-loss';
-        row.append(match.championName + ' ', result, ` ${match.kills}/${match.deaths}/${match.assists} ${match.cs} CS ${formatDuration(match.gameDuration)}`);
-        row.addEventListener('click', () => selectMatch(match.matchId));
+        topLine.appendChild(result);
+        const side = document.createElement('span');
+        side.textContent = match.teamId === 100 ? 'Blue side' : 'Red side';
+        side.className = match.teamId === 100 ? 'match-side-blue' : 'match-side-red';
+        topLine.appendChild(side);
+        main.appendChild(topLine);
+
+        const kdaLine = document.createElement('div');
+        kdaLine.className = 'match-kda-line';
+        const kda = (match.kills + match.assists) / Math.max(1, match.deaths);
+        kdaLine.textContent =
+            `${match.kills}/${match.deaths}/${match.assists} (${kda.toFixed(2)} KDA) · ${match.cs} CS · ${formatDuration(match.gameDuration)}`;
+        main.appendChild(kdaLine);
+        row.appendChild(main);
+
+        const items = document.createElement('div');
+        items.className = 'match-items';
+        match.items.forEach((id, i) => {
+            if (!id) return;
+            const itemIcon = document.createElement('img');
+            itemIcon.className = 'match-item-icon' + (i === 6 ? ' trinket' : '');
+            itemIcon.alt = `Item ${id}`;
+            itemIcon.src = `https://ddragon.leagueoflegends.com/cdn/${v}/img/item/${id}.png`;
+            hideOnError(itemIcon);
+            items.appendChild(itemIcon);
+        });
+        row.appendChild(items);
+
         listEl.appendChild(row);
     }
 }

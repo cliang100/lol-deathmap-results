@@ -190,14 +190,24 @@ h1 {
     flex-wrap: wrap;
     justify-content: center;
     align-items: flex-start;
-    gap: 16px;
+    gap: 20px;
+    max-width: 1280px;
+    width: 100%;
+}
+
+.left-column {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 340px;
+    flex-shrink: 0;
 }
 
 .sidebar {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    width: 240px;
+    width: 100%;
 }
 
 .stat-box {
@@ -325,36 +335,128 @@ h1 {
 }
 
 .match-history {
-    width: 240px;
-    max-height: 320px;
+    width: 340px;
+    max-height: 420px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 8px;
+    padding-right: 4px;
 }
 
 .match-history .match-row:first-child {
     position: sticky;
     top: 0;
+    z-index: 1;
 }
 
 .match-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     background: #22201c;
     border: 1px solid #3a352c;
+    border-left: 4px solid #3a352c;
     border-radius: 12px;
-    padding: 12px 16px;
+    padding: 10px 12px;
     font-size: 13px;
     cursor: pointer;
+    white-space: nowrap;
+}
+
+.match-row.win {
+    border-left-color: #4caf50;
+    background: rgba(76, 175, 80, 0.07);
+}
+
+.match-row.loss {
+    border-left-color: #f44336;
+    background: rgba(244, 67, 54, 0.07);
 }
 
 .match-row.selected {
     border-color: #E8B34C;
+    border-left-width: 4px;
+    box-shadow: 0 0 0 1px #E8B34C;
+}
+
+.match-row.match-all {
+    justify-content: center;
+    font-weight: 600;
+}
+
+.match-champ-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.match-main {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.match-top-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.match-champ-name {
+    font-weight: 600;
+    color: #CFC9BC;
+}
+
+.match-kda-line {
+    color: #aaa;
+    font-size: 12px;
 }
 
 .match-win {
     color: #4caf50;
+    font-weight: 600;
 }
 
 .match-loss {
     color: #f44336;
+    font-weight: 600;
+}
+
+.match-side-blue,
+.match-side-red {
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 4px;
+}
+
+.match-side-blue {
+    color: #64b5f6;
+    border: 1px solid #64b5f6;
+}
+
+.match-side-red {
+    color: #e57373;
+    border: 1px solid #e57373;
+}
+
+.match-items {
+    display: flex;
+    gap: 3px;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.match-item-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+}
+
+.match-item-icon.trinket {
+    width: 18px;
+    height: 18px;
+    align-self: center;
 }
