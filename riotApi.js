@@ -143,6 +143,7 @@ export async function getDeathData(gameName, tagLine, region = 'na1') {
 
         matches.push({
             matchId,
+            queueId: match.info.queueId,
             championName: me.championName,
             teamId: me.teamId,
             items: [me.item0, me.item1, me.item2, me.item3, me.item4, me.item5, me.item6],

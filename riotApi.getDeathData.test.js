@@ -100,6 +100,7 @@ describe('getDeathData', () => {
     const match = {
       info: {
         mapId: 11,
+        queueId: 420,
         gameDuration: 1800,
         gameCreation: 1700000000000,
         participants: [
@@ -153,7 +154,7 @@ describe('getDeathData', () => {
       { time: '1:05', x: 1000, y: 2000, killedBy: 'Zed', matchId },
     ]);
     expect(result.matches).toEqual([
-      { matchId, championName: 'Ahri', teamId: 100, items: [6653, 3020, 3089, 0, 0, 0, 3340], win: true, kills: 5, deaths: 1, assists: 7, cs: 200, gameDuration: 1800, gameCreation: 1700000000000 },
+      { matchId, queueId: 420, championName: 'Ahri', teamId: 100, items: [6653, 3020, 3089, 0, 0, 0, 3340], win: true, kills: 5, deaths: 1, assists: 7, cs: 200, gameDuration: 1800, gameCreation: 1700000000000 },
     ]);
     expect(redisSet).toHaveBeenCalledWith(
       'testname#t1#na1',
