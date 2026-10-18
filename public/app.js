@@ -124,6 +124,19 @@ function hideOnError(img) {
     img.addEventListener('error', () => img.remove());
 }
 
+function queueName(queueId) {
+    switch (queueId) {
+        case 420: return 'Ranked Solo';
+        case 440: return 'Ranked Flex';
+        case 400: return 'Normal Draft';
+        case 430: return 'Normal Blind';
+        case 480: return 'Swiftplay';
+        case 490: return 'Quickplay';
+        case 0: return 'Custom';
+        default: return 'Other';
+    }
+}
+
 async function renderMatchHistory() {
     const listEl = document.getElementById('matchHistory');
     listEl.innerHTML = '';
@@ -147,37 +160,42 @@ async function renderMatchHistory() {
         champIcon.alt = match.championName;
         champIcon.src = `https://ddragon.leagueoflegends.com/cdn/${v}/img/champion/${match.championName}.png`;
         hideOnError(champIcon);
-        row.appendChild(champIcon);
 
-        const main = document.createElement('div');
-        main.className = 'match-main';
+        const body = document.createElement('div');
+        body.className = 'match-body';
 
-        const topLine = document.createElement('div');
-        topLine.className = 'match-top-line';
+        const line1 = document.createElement('div');
+        line1.className = 'match-line1';
+        line1.appendChild(champIcon);
         const champName = document.createElement('span');
         champName.className = 'match-champ-name';
         champName.textContent = match.championName;
-        topLine.appendChild(champName);
+        line1.appendChild(champName);
         const result = document.createElement('span');
         result.textContent = match.win ? 'Win' : 'Loss';
         result.className = match.win ? 'match-win' : 'match-loss';
-        topLine.appendChild(result);
+        line1.appendChild(result);
         const side = document.createElement('span');
         side.textContent = match.teamId === 100 ? 'Blue side' : 'Red side';
         side.className = match.teamId === 100 ? 'match-side-blue' : 'match-side-red';
-        topLine.appendChild(side);
-        main.appendChild(topLine);
+        line1.appendChild(side);
+        body.appendChild(line1);
 
-        const kdaLine = document.createElement('div');
-        kdaLine.className = 'match-kda-line';
+        const line2 = document.createElement('div');
+        line2.className = 'match-line2';
+        const queue = document.createElement('span');
+        queue.className = 'match-queue';
+        queue.textContent = queueName(match.queueId);
+        line2.appendChild(queue);
         const kda = (match.kills + match.assists) / Math.max(1, match.deaths);
-        kdaLine.textContent =
+        const stats = document.createElement('span');
+        stats.textContent =
             `${match.kills}/${match.deaths}/${match.assists} (${kda.toFixed(2)} KDA) · ${match.cs} CS · ${formatDuration(match.gameDuration)}`;
-        main.appendChild(kdaLine);
-        row.appendChild(main);
+        line2.appendChild(stats);
+        body.appendChild(line2);
 
-        const items = document.createElement('div');
-        items.className = 'match-items';
+        const line3 = document.createElement('div');
+        line3.className = 'match-items';
         match.items.forEach((id, i) => {
             if (!id) return;
             const itemIcon = document.createElement('img');
@@ -185,9 +203,10 @@ async function renderMatchHistory() {
             itemIcon.alt = `Item ${id}`;
             itemIcon.src = `https://ddragon.leagueoflegends.com/cdn/${v}/img/item/${id}.png`;
             hideOnError(itemIcon);
-            items.appendChild(itemIcon);
+            line3.appendChild(itemIcon);
         });
-        row.appendChild(items);
+        body.appendChild(line3);
+        row.appendChild(body);
 
         listEl.appendChild(row);
     }

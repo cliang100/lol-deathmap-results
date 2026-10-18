@@ -199,7 +199,7 @@ h1 {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    width: 340px;
+    width: 420px;
     flex-shrink: 0;
 }
 
@@ -335,13 +335,15 @@ h1 {
 }
 
 .match-history {
-    width: 340px;
-    max-height: 420px;
+    width: 420px;
+    max-height: 480px;
     overflow-y: auto;
+    overflow-x: hidden;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
     padding-right: 4px;
+    box-sizing: border-box;
 }
 
 .match-history .match-row:first-child {
@@ -351,17 +353,18 @@ h1 {
 }
 
 .match-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    display: block;
+    flex-shrink: 0;
     background: #22201c;
     border: 1px solid #3a352c;
     border-left: 4px solid #3a352c;
     border-radius: 12px;
-    padding: 10px 12px;
+    padding: 14px 16px;
     font-size: 13px;
     cursor: pointer;
-    white-space: nowrap;
+    box-sizing: border-box;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 .match-row.win {
@@ -381,6 +384,7 @@ h1 {
 }
 
 .match-row.match-all {
+    flex-shrink: 0;
     justify-content: center;
     font-weight: 600;
 }
@@ -392,27 +396,36 @@ h1 {
     flex-shrink: 0;
 }
 
-.match-main {
+.match-body {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
     min-width: 0;
 }
 
-.match-top-line {
+.match-line1 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.match-line2 {
     display: flex;
     align-items: center;
     gap: 8px;
+    color: #aaa;
+    font-size: 12px;
+    flex-wrap: wrap;
+}
+
+.match-queue {
+    color: #E8B34C;
+    font-weight: 600;
 }
 
 .match-champ-name {
     font-weight: 600;
     color: #CFC9BC;
-}
-
-.match-kda-line {
-    color: #aaa;
-    font-size: 12px;
 }
 
 .match-win {
@@ -444,9 +457,9 @@ h1 {
 
 .match-items {
     display: flex;
-    gap: 3px;
-    margin-left: auto;
-    flex-shrink: 0;
+    gap: 4px;
+    justify-content: flex-start;
+    flex-wrap: wrap;
 }
 
 .match-item-icon {
