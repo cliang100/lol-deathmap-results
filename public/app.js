@@ -97,10 +97,23 @@ async function renderProfile(profile) {
     document.getElementById('summonerName').textContent = `${profile.name}#${profile.tag}`;
     document.getElementById('summonerLevel').textContent = `Level ${profile.level}`;
 
+    const rankRow = document.getElementById('summonerRank');
+    rankRow.innerHTML = '';
+    const rankText = document.createElement('span');
     const r = profile.rank;
-    document.getElementById('summonerRank').textContent = r
-        ? `${r.tier} ${r.division} · ${r.lp} LP · ${r.wins}W ${r.losses}L`
-        : 'Unranked';
+    if (r) {
+        const tier = r.tier.toLowerCase();
+        const emblem = document.createElement('img');
+        emblem.className = 'rank-emblem';
+        emblem.alt = r.tier;
+        emblem.src = tier === 'emerald' ? '/ranks/emerald.svg' : `/ranks/${tier}.png`;
+        hideOnError(emblem);
+        rankRow.appendChild(emblem);
+        rankText.textContent = `${r.tier} ${r.division} · ${r.lp} LP · ${r.wins}W ${r.losses}L`;
+    } else {
+        rankText.textContent = 'Unranked';
+    }
+    rankRow.appendChild(rankText);
 
     const v = await getDdVersion();
     document.getElementById('summonerIcon').src =

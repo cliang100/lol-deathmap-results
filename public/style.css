@@ -266,52 +266,56 @@ h1 {
     margin: 0 0 8px;
 }
 
+.page-width {
+    max-width: 1280px;
+    width: 100%;
+}
+
 .summoner-info {
     display: flex;
-    gap: 12px;
+    gap: 16px;
     align-items: center;
     text-align: left;
-    max-width: 1000px;
     width: 100%;
-    background: #22201c;
-    border: 1px solid #3a352c;
-    border-radius: 12px;
-    padding: 16px;
+    padding: 8px 0;
     margin-bottom: 20px;
 }
 
 .summoner-name {
     font-family: 'Oswald', sans-serif;
-    font-size: 20px;
+    font-size: 32px;
     color: #CFC9BC;
     margin: 0;
 }
 
-.summoner-region {
+.summoner-subline {
     font-size: 13px;
     color: #aaa;
     margin: 4px 0 0;
 }
 
 #summonerIcon {
-    width: 64px;
-    height: 64px;
-    border-radius: 8px;
+    width: 80px;
+    height: 80px;
+    border-radius: 12px;
 }
 
 #summonerIcon:not([src]) {
     display: none;
 }
 
-.summoner-level,
 .summoner-rank {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 13px;
-    color: #aaa;
+    color: #E8B34C;
     margin: 4px 0 0;
 }
 
-.summoner-rank {
-    color: #E8B34C;
+.rank-emblem {
+    width: 28px;
+    height: 28px;
 }
 
 .top-bar {
