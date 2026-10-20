@@ -372,4 +372,23 @@ describe('getDeathData', () => {
     expect(second.deaths).toEqual([]);
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining(`/matches/${aramId}?`));
   });
+
+  it('returns empty matches and deaths without calling mget when the match-id list is empty', async () => {
+    vi.stubGlobal(
+      'fetch',
+      routeFetch([
+        ['by-riot-id', jsonResponse({ puuid: PUUID, gameName: 'TestName', tagLine: 'T1' })],
+        ['summoners/by-puuid', jsonResponse({ summonerLevel: 30, profileIconId: 2 })],
+        ['entries/by-puuid', jsonResponse([])],
+        ['/ids?', jsonResponse([])],
+      ])
+    );
+
+    const result = await getDeathData('TestName', 'T1', 'na1');
+
+    expect(result.matches).toEqual([]);
+    expect(result.deaths).toEqual([]);
+    expect(redisMget).not.toHaveBeenCalled();
+    expect(redisSet).toHaveBeenCalledWith('testname#t1#na1', result, { ex: 300 });
+  });
 });

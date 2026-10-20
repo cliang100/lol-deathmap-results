@@ -149,7 +149,7 @@ export async function getDeathData(gameName, tagLine, region = 'na1') {
     }
 
     const matchKeys = matchIds.map(matchId => matchCacheKey(puuid, matchId));
-    const cachedGames = await redis.mget(...matchKeys);
+    const cachedGames = matchKeys.length === 0 ? [] : await redis.mget(...matchKeys);
 
     const missing = [];
     const gamesById = new Map();
