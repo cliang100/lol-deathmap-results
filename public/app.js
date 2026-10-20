@@ -96,6 +96,26 @@ async function getDdVersion() {
     return ddVersion;
 }
 
+let champNames = {};
+async function loadChampNames() {
+    try {
+        const v = await getDdVersion();
+        const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/${v}/data/en_US/champion.json`);
+        const data = await res.json();
+        const map = {};
+        for (const id of Object.keys(data.data)) {
+            map[id] = data.data[id].name;
+        }
+        champNames = map;
+    } catch {
+        champNames = {};
+    }
+}
+
+function displayName(id) {
+    return champNames[id] || id;
+}
+
 async function renderProfile(profile) {
     document.getElementById('summonerName').textContent = `${profile.name}#${profile.tag}`;
     document.getElementById('summonerLevel').textContent = `Level ${profile.level}`;
@@ -277,7 +297,7 @@ async function renderMatchHistory() {
         line1.appendChild(champIcon);
         const champName = document.createElement('span');
         champName.className = 'match-champ-name';
-        champName.textContent = match.championName;
+        champName.textContent = displayName(match.championName);
         line1.appendChild(champName);
         const result = document.createElement('span');
         result.textContent = match.win ? 'Win' : 'Loss';
@@ -339,7 +359,7 @@ function renderSelection() {
 
     document.getElementById('totalDeathsStat').textContent = deaths.length;
     document.getElementById('gamesAnalyzedStat').textContent = matchCount;
-    document.getElementById('mostCommonKillerStat').textContent = topKiller;
+    document.getElementById('mostCommonKillerStat').textContent = displayName(topKiller);
 
     if (currentMode === 'dots') renderDots(deaths); else renderHeatmap(deaths);
 
@@ -385,6 +405,7 @@ async function performSearch(gameName, tagLine, region) {
         }
 
         const data = await res.json();
+        await loadChampNames();
         saveHistoryEntry({ name: gameName, tag: tagLine, region, iconId: data.profile.iconId });
         renderSearchResults(data);
     } catch (err) {
@@ -434,7 +455,7 @@ canvas.addEventListener('mousemove', (e) => {
     renderDots(deaths, hovered);
 
     if (hovered) {
-        tooltip.textContent = `${hovered.time} - killed by ${hovered.killedBy}`;
+        tooltip.textContent = `${hovered.time} - killed by ${displayName(hovered.killedBy)}`;
         tooltip.style.display = 'block';
 
         const tooltipWidth = tooltip.offsetWidth;
