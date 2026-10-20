@@ -29,6 +29,53 @@ function limitedFetch(url) {
 }
 
 
+function matchCacheKey(puuid, matchId) {
+    return `match:v1:${puuid}:${matchId}`;
+}
+
+
+function processGame(puuid, matchId, match, timeline) {
+    const me = match.info.participants.find(p => p.puuid === puuid);
+    const myId = me.participantId;
+
+    const matchEntry = {
+        matchId,
+        queueId: match.info.queueId,
+        championName: me.championName,
+        teamId: me.teamId,
+        items: [me.item0, me.item1, me.item2, me.item3, me.item4, me.item5, me.item6],
+        win: me.win,
+        kills: me.kills,
+        deaths: me.deaths,
+        assists: me.assists,
+        cs: (me.totalMinionsKilled ?? 0) + (me.neutralMinionsKilled ?? 0),
+        gameDuration: match.info.gameDuration,
+        gameCreation: match.info.gameCreation,
+    };
+
+    const idToChamp = {};
+    match.info.participants.forEach(p => {
+        idToChamp[p.participantId] = p.championName;
+    });
+
+    const kills = timeline.info.frames
+        .flatMap(frame => frame.events)
+        .filter(event => event.type === 'CHAMPION_KILL');
+
+    const myDeaths = kills.filter(k => k.victimId === myId);
+
+    const deaths = myDeaths.map(d => ({
+        time: msToClock(d.timestamp),
+        x: d.position.x,
+        y: d.position.y,
+        killedBy: idToChamp[d.killerId],
+        matchId: matchId,
+    }));
+
+    return { matchEntry, deaths };
+}
+
+
 export function msToClock(ms) {
     const totalSeconds = Math.floor(ms / 1000);
     const minutes = Math.floor(totalSeconds / 60);
@@ -101,8 +148,22 @@ export async function getDeathData(gameName, tagLine, region = 'na1') {
         throw err;
     }
 
+    const matchKeys = matchIds.map(matchId => matchCacheKey(puuid, matchId));
+    const cachedGames = await redis.mget(...matchKeys);
+
+    const missing = [];
+    const gamesById = new Map();
+    matchIds.forEach((matchId, i) => {
+        const cachedGame = cachedGames[i];
+        if (cachedGame) {
+            gamesById.set(matchId, cachedGame);
+        } else {
+            missing.push(matchId);
+        }
+    });
+
     const matchResults = await Promise.all(
-        matchIds.map(async matchId => {
+        missing.map(async matchId => {
             const matchRes = await limitedFetch(`https://${routing}.api.riotgames.com/lol/match/v5/matches/${matchId}?api_key=${apiKey}`);
             const match = await matchRes.json();
 
@@ -111,16 +172,11 @@ export async function getDeathData(gameName, tagLine, region = 'na1') {
                 return null;
             }
 
-            return { matchId, match };
-        })
-    );
+            if (match.info.mapId !== 11) {
+                await redis.set(matchCacheKey(puuid, matchId), { skipped: true });
+                return { matchId, skipped: true };
+            }
 
-    const srMatches = matchResults
-        .filter(result => result !== null)
-        .filter(({ match }) => match.info.mapId === 11);
-
-    const timelineResults = await Promise.all(
-        srMatches.map(async ({ matchId, match }) => {
             const timelineRes = await limitedFetch(`https://${routing}.api.riotgames.com/lol/match/v5/matches/${matchId}/timeline?api_key=${apiKey}`);
             const timeline = await timelineRes.json();
 
@@ -129,53 +185,21 @@ export async function getDeathData(gameName, tagLine, region = 'na1') {
                 return null;
             }
 
-            return { matchId, match, timeline };
+            const game = processGame(puuid, matchId, match, timeline);
+            await redis.set(matchCacheKey(puuid, matchId), game);
+            return { matchId, ...game };
         })
     );
 
-    const validResults = timelineResults.filter(result => result !== null);
+    const validResults = matchIds
+        .map(matchId => gamesById.get(matchId) ?? matchResults.find(r => r && r.matchId === matchId) ?? null)
+        .filter(result => result !== null && !result.skipped);
     const allDeaths = [];
     const matches = [];
 
-    for (const { matchId, match, timeline } of validResults) {
-        const me = match.info.participants.find(p => p.puuid === puuid);
-        const myId = me.participantId;
-
-        matches.push({
-            matchId,
-            queueId: match.info.queueId,
-            championName: me.championName,
-            teamId: me.teamId,
-            items: [me.item0, me.item1, me.item2, me.item3, me.item4, me.item5, me.item6],
-            win: me.win,
-            kills: me.kills,
-            deaths: me.deaths,
-            assists: me.assists,
-            cs: (me.totalMinionsKilled ?? 0) + (me.neutralMinionsKilled ?? 0),
-            gameDuration: match.info.gameDuration,
-            gameCreation: match.info.gameCreation,
-        });
-
-        const idToChamp = {};
-        match.info.participants.forEach(p => {
-            idToChamp[p.participantId] = p.championName;
-        });
-
-        const kills = timeline.info.frames
-            .flatMap(frame => frame.events)
-            .filter(event => event.type === 'CHAMPION_KILL');
-
-        const myDeaths = kills.filter(k => k.victimId === myId);
-
-        myDeaths.forEach(d => {
-            allDeaths.push({
-                time: msToClock(d.timestamp),
-                x: d.position.x,
-                y: d.position.y,
-                killedBy: idToChamp[d.killerId],
-                matchId: matchId,
-            });
-        });
+    for (const { matchEntry, deaths } of validResults) {
+        matches.push(matchEntry);
+        allDeaths.push(...deaths);
     }
 
     const result = { profile, matches, deaths: allDeaths };

@@ -1,14 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-const { redisGet, redisSet } = vi.hoisted(() => ({
+const { redisGet, redisSet, redisMget } = vi.hoisted(() => ({
   redisGet: vi.fn(),
   redisSet: vi.fn(),
+  redisMget: vi.fn(),
 }));
 
 vi.mock('@upstash/redis', () => {
   class FakeRedis {
     get = redisGet;
     set = redisSet;
+    mget = redisMget;
   }
   return { Redis: FakeRedis };
 });
@@ -33,6 +35,7 @@ function routeFetch(routes) {
 beforeEach(() => {
   redisGet.mockReset().mockResolvedValue(null);
   redisSet.mockReset().mockResolvedValue('OK');
+  redisMget.mockReset().mockImplementation(async (...keys) => keys.map(() => null));
 });
 
 afterEach(() => {
@@ -221,5 +224,152 @@ describe('getDeathData', () => {
     expect(result.deaths).toEqual([
       { time: '2:00', x: 3000, y: 4000, killedBy: 'Zed', matchId: srMatchId },
     ]);
+  });
+
+  it('uses per-match cache and makes no match/timeline fetches when all games are cached', async () => {
+    const matchId = 'NA1_CACHED';
+    const cachedGame = {
+      matchEntry: { matchId, queueId: 420, championName: 'Ahri', win: true, kills: 5, deaths: 1, assists: 7, cs: 200, gameDuration: 1800, gameCreation: 1700000000000 },
+      deaths: [{ time: '1:05', x: 1000, y: 2000, killedBy: 'Zed', matchId }],
+    };
+    redisMget.mockResolvedValue([cachedGame]);
+    const fetchMock = routeFetch([
+      ['by-riot-id', jsonResponse({ puuid: PUUID, gameName: 'TestName', tagLine: 'T1' })],
+      ['summoners/by-puuid', jsonResponse({ summonerLevel: 100, profileIconId: 1 })],
+      ['entries/by-puuid', jsonResponse([])],
+      ['/ids?', jsonResponse([matchId])],
+    ]);
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await getDeathData('TestName', 'T1', 'na1');
+
+    expect(redisMget).toHaveBeenCalledWith(`match:v1:${PUUID}:${matchId}`);
+    expect(result.matches).toEqual([cachedGame.matchEntry]);
+    expect(result.deaths).toEqual(cachedGame.deaths);
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining(`/matches/${matchId}?`));
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining(`/matches/${matchId}/timeline`));
+    expect(redisSet).toHaveBeenCalledWith('testname#t1#na1', result, { ex: 300 });
+  });
+
+  it('fetches only the missing ids on partial per-match cache', async () => {
+    const hitId = 'NA1_HIT';
+    const missId = 'NA1_MISS';
+    const cachedGame = {
+      matchEntry: { matchId: hitId, queueId: 420, championName: 'Ahri', win: true, kills: 1, deaths: 1, assists: 1, cs: 100, gameDuration: 1500, gameCreation: 1700000000000 },
+      deaths: [{ time: '2:00', x: 1, y: 2, killedBy: 'Zed', matchId: hitId }],
+    };
+    redisMget.mockResolvedValue([cachedGame, null]);
+    const freshMatch = {
+      info: {
+        mapId: 11,
+        queueId: 420,
+        gameDuration: 1800,
+        gameCreation: 1700000001000,
+        participants: [
+          { puuid: PUUID, participantId: 1, championName: 'Lux', teamId: 100, item0: 0, item1: 0, item2: 0, item3: 0, item4: 0, item5: 0, item6: 0, win: false, kills: 0, deaths: 3, assists: 2, totalMinionsKilled: 50, neutralMinionsKilled: 5 },
+          { puuid: 'other-puuid', participantId: 2, championName: 'Zed', win: true, kills: 3, deaths: 0, assists: 0, totalMinionsKilled: 0, neutralMinionsKilled: 0 },
+        ],
+      },
+    };
+    const freshTimeline = {
+      info: {
+        frames: [{ events: [{ type: 'CHAMPION_KILL', timestamp: 180000, victimId: 1, killerId: 2, position: { x: 9, y: 9 } }] }],
+      },
+    };
+    const fetchMock = routeFetch([
+      ['by-riot-id', jsonResponse({ puuid: PUUID, gameName: 'TestName', tagLine: 'T1' })],
+      ['summoners/by-puuid', jsonResponse({ summonerLevel: 30, profileIconId: 2 })],
+      ['entries/by-puuid', jsonResponse([])],
+      ['/ids?', jsonResponse([hitId, missId])],
+      [`/matches/${missId}?`, jsonResponse(freshMatch)],
+      [`/matches/${missId}/timeline`, jsonResponse(freshTimeline)],
+    ]);
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await getDeathData('TestName', 'T1', 'na1');
+
+    expect(redisMget).toHaveBeenCalledWith(`match:v1:${PUUID}:${hitId}`, `match:v1:${PUUID}:${missId}`);
+    expect(result.matches.map(m => m.matchId)).toEqual([hitId, missId]);
+    expect(result.deaths.map(d => d.matchId)).toEqual([hitId, missId]);
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining(`/matches/${hitId}?`));
+    expect(redisSet).toHaveBeenCalledWith(`match:v1:${PUUID}:${missId}`, {
+      matchEntry: result.matches[1],
+      deaths: [result.deaths[1]],
+    });
+  });
+
+  it('does not cache a game when its match fetch fails', async () => {
+    const badId = 'NA1_BAD';
+    const goodId = 'NA1_GOOD';
+    redisMget.mockResolvedValue([null, null]);
+    const goodMatch = {
+      info: {
+        mapId: 11,
+        queueId: 420,
+        gameDuration: 1800,
+        gameCreation: 1700000001000,
+        participants: [
+          { puuid: PUUID, participantId: 1, championName: 'Ahri', teamId: 100, item0: 0, item1: 0, item2: 0, item3: 0, item4: 0, item5: 0, item6: 0, win: true, kills: 1, deaths: 0, assists: 1, totalMinionsKilled: 10, neutralMinionsKilled: 0 },
+          { puuid: 'other-puuid', participantId: 2, championName: 'Zed', win: false, kills: 0, deaths: 1, assists: 0, totalMinionsKilled: 0, neutralMinionsKilled: 0 },
+        ],
+      },
+    };
+    const goodTimeline = { info: { frames: [{ events: [] }] } };
+    vi.stubGlobal(
+      'fetch',
+      routeFetch([
+        ['by-riot-id', jsonResponse({ puuid: PUUID, gameName: 'TestName', tagLine: 'T1' })],
+        ['summoners/by-puuid', jsonResponse({ summonerLevel: 30, profileIconId: 2 })],
+        ['entries/by-puuid', jsonResponse([])],
+        ['/ids?', jsonResponse([badId, goodId])],
+        [`/matches/${badId}?`, jsonResponse({ message: 'gone' }, { ok: false, status: 404 })],
+        [`/matches/${goodId}?`, jsonResponse(goodMatch)],
+        [`/matches/${goodId}/timeline`, jsonResponse(goodTimeline)],
+      ])
+    );
+
+    const result = await getDeathData('TestName', 'T1', 'na1');
+
+    expect(result.matches.map(m => m.matchId)).toEqual([goodId]);
+    const perGameSets = redisSet.mock.calls.filter(([key]) => key.startsWith('match:v1:'));
+    expect(perGameSets.map(([key]) => key)).toEqual([`match:v1:${PUUID}:${goodId}`]);
+  });
+
+  it('stores a skipped marker for non-SR games and reuses it without refetching', async () => {
+    const aramId = 'NA1_ARAM2';
+    const aramMatch = { info: { mapId: 12, participants: [] } };
+    redisMget.mockResolvedValue([null]);
+    vi.stubGlobal(
+      'fetch',
+      routeFetch([
+        ['by-riot-id', jsonResponse({ puuid: PUUID, gameName: 'TestName', tagLine: 'T1' })],
+        ['summoners/by-puuid', jsonResponse({ summonerLevel: 30, profileIconId: 2 })],
+        ['entries/by-puuid', jsonResponse([])],
+        ['/ids?', jsonResponse([aramId])],
+        [`/matches/${aramId}?`, jsonResponse(aramMatch)],
+      ])
+    );
+
+    const first = await getDeathData('TestName', 'T1', 'na1');
+
+    expect(first.matches).toEqual([]);
+    expect(first.deaths).toEqual([]);
+    expect(redisSet).toHaveBeenCalledWith(`match:v1:${PUUID}:${aramId}`, { skipped: true });
+
+    redisSet.mockClear();
+    redisMget.mockResolvedValue([{ skipped: true }]);
+    const fetchMock = routeFetch([
+      ['by-riot-id', jsonResponse({ puuid: PUUID, gameName: 'TestName', tagLine: 'T1' })],
+      ['summoners/by-puuid', jsonResponse({ summonerLevel: 30, profileIconId: 2 })],
+      ['entries/by-puuid', jsonResponse([])],
+      ['/ids?', jsonResponse([aramId])],
+    ]);
+    vi.stubGlobal('fetch', fetchMock);
+
+    const second = await getDeathData('TestName', 'T1', 'na1');
+
+    expect(second.matches).toEqual([]);
+    expect(second.deaths).toEqual([]);
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining(`/matches/${aramId}?`));
   });
 });
