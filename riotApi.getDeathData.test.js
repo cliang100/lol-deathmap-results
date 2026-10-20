@@ -55,7 +55,7 @@ describe('getDeathData', () => {
     const result = await getDeathData('SomeName', 'TAG', 'na1');
 
     expect(result).toEqual(cached);
-    expect(redisGet).toHaveBeenCalledWith('somename#tag#na1');
+    expect(redisGet).toHaveBeenCalledWith('somename#tag#na1#0');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -160,7 +160,7 @@ describe('getDeathData', () => {
       { matchId, queueId: 420, championName: 'Ahri', teamId: 100, items: [6653, 3020, 3089, 0, 0, 0, 3340], win: true, kills: 5, deaths: 1, assists: 7, cs: 200, gameDuration: 1800, gameCreation: 1700000000000 },
     ]);
     expect(redisSet).toHaveBeenCalledWith(
-      'testname#t1#na1',
+      'testname#t1#na1#0',
       result,
       { ex: 300 }
     );
@@ -248,7 +248,7 @@ describe('getDeathData', () => {
     expect(result.deaths).toEqual(cachedGame.deaths);
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining(`/matches/${matchId}?`));
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining(`/matches/${matchId}/timeline`));
-    expect(redisSet).toHaveBeenCalledWith('testname#t1#na1', result, { ex: 300 });
+    expect(redisSet).toHaveBeenCalledWith('testname#t1#na1#0', result, { ex: 300 });
   });
 
   it('fetches only the missing ids on partial per-match cache', async () => {
@@ -389,6 +389,79 @@ describe('getDeathData', () => {
     expect(result.matches).toEqual([]);
     expect(result.deaths).toEqual([]);
     expect(redisMget).not.toHaveBeenCalled();
-    expect(redisSet).toHaveBeenCalledWith('testname#t1#na1', result, { ex: 300 });
+    expect(redisSet).toHaveBeenCalledWith('testname#t1#na1#0', result, { ex: 300 });
+  });
+
+  it('start > 0 skips summoner/rank fetches and returns no profile', async () => {
+    const matchId = 'NA1_PAGE2';
+    const pageMatch = {
+      info: {
+        mapId: 11,
+        queueId: 420,
+        gameDuration: 1800,
+        gameCreation: 1700000000000,
+        participants: [
+          { puuid: PUUID, participantId: 1, championName: 'Ahri', teamId: 100, item0: 0, item1: 0, item2: 0, item3: 0, item4: 0, item5: 0, item6: 0, win: true, kills: 1, deaths: 0, assists: 1, totalMinionsKilled: 10, neutralMinionsKilled: 0 },
+          { puuid: 'other-puuid', participantId: 2, championName: 'Zed', win: false, kills: 0, deaths: 1, assists: 0, totalMinionsKilled: 0, neutralMinionsKilled: 0 },
+        ],
+      },
+    };
+    const pageTimeline = { info: { frames: [{ events: [] }] } };
+    const fetchMock = routeFetch([
+      ['by-riot-id', jsonResponse({ puuid: PUUID, gameName: 'TestName', tagLine: 'T1' })],
+      ['/ids?', jsonResponse([matchId])],
+      [`/matches/${matchId}?`, jsonResponse(pageMatch)],
+      [`/matches/${matchId}/timeline`, jsonResponse(pageTimeline)],
+    ]);
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await getDeathData('TestName', 'T1', 'na1', 20, 20);
+
+    expect(result).not.toHaveProperty('profile');
+    expect(result.matches.map(m => m.matchId)).toEqual([matchId]);
+    expect(redisGet).toHaveBeenCalledWith('testname#t1#na1#20');
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('summoners/by-puuid'));
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('entries/by-puuid'));
+  });
+
+  it('uses the given start and count in the match-ids URL', async () => {
+    const fetchMock = routeFetch([
+      ['by-riot-id', jsonResponse({ puuid: PUUID, gameName: 'TestName', tagLine: 'T1' })],
+      ['summoners/by-puuid', jsonResponse({ summonerLevel: 30, profileIconId: 2 })],
+      ['entries/by-puuid', jsonResponse([])],
+      ['/ids?', jsonResponse([])],
+    ]);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await getDeathData('TestName', 'T1', 'na1', 20, 5);
+
+    const idsCall = fetchMock.mock.calls.find(([url]) => url.includes('/ids?'));
+    expect(idsCall[0]).toContain('start=20');
+    expect(idsCall[0]).toContain('count=5');
+  });
+
+  it('hasMore is true when ids length equals count and false otherwise', async () => {
+    const routes = [
+      ['by-riot-id', jsonResponse({ puuid: PUUID, gameName: 'TestName', tagLine: 'T1' })],
+      ['summoners/by-puuid', jsonResponse({ summonerLevel: 30, profileIconId: 2 })],
+      ['entries/by-puuid', jsonResponse([])],
+    ];
+    const emptyMatch = { info: { mapId: 12, participants: [] } };
+    const emptyTimeline = { info: { frames: [{ events: [] }] } };
+    const matchRoutes = (ids) => [
+      ...routes,
+      ['/ids?', jsonResponse(ids)],
+      ...ids.flatMap((id) => [
+        [`/matches/${id}?`, jsonResponse(emptyMatch)],
+        [`/matches/${id}/timeline`, jsonResponse(emptyTimeline)],
+      ]),
+    ];
+    vi.stubGlobal('fetch', routeFetch(matchRoutes(['NA1_A', 'NA1_B'])));
+    const full = await getDeathData('TestName', 'T1', 'na1', 0, 2);
+    expect(full.hasMore).toBe(true);
+
+    vi.stubGlobal('fetch', routeFetch(matchRoutes(['NA1_A'])));
+    const partial = await getDeathData('TestName', 'T1', 'na1', 0, 2);
+    expect(partial.hasMore).toBe(false);
   });
 });

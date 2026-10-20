@@ -10,9 +10,13 @@ app.use(express.static('public'));
 
 app.get('/api/deaths/:region/:gameName/:tagLine', async(req, res) => {
     const { region, gameName, tagLine } = req.params;
+    let start = parseInt(req.query.start, 10);
+    if (!Number.isInteger(start) || start < 0) start = 0;
+    let count = parseInt(req.query.count, 10);
+    if (!Number.isInteger(count) || count < 1 || count > 20) count = 20;
 
     try {
-        const deaths = await getDeathData(gameName, tagLine, region);
+        const deaths = await getDeathData(gameName, tagLine, region, start, count);
         res.json(deaths);
     } catch (err) {
         console.error(err);

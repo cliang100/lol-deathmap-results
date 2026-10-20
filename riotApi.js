@@ -84,9 +84,9 @@ export function msToClock(ms) {
 }
 
 
-export async function getDeathData(gameName, tagLine, region = 'na1') {
+export async function getDeathData(gameName, tagLine, region = 'na1', start = 0, count = 20) {
     const routing = regionToRouting[region] || 'americas';
-    const cacheKey = `${gameName}#${tagLine}#${region}`.toLowerCase();
+    const cacheKey = `${gameName}#${tagLine}#${region}#${start}`.toLowerCase();
     const cached = await redis.get(cacheKey);
     if (cached) {
         console.log('Cache hit:', cacheKey);
@@ -111,28 +111,32 @@ export async function getDeathData(gameName, tagLine, region = 'na1') {
 
     const puuid = account.puuid;
 
-    const [summonerRes, rankRes] = await Promise.all([
-        limitedFetch(`https://${region}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${puuid}?api_key=${apiKey}`),
-        limitedFetch(`https://${region}.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}?api_key=${apiKey}`),
-    ]);
-    const summoner = await summonerRes.json();
-    const entries = await rankRes.json();
+    const [summonerRes, rankRes] = start === 0
+        ? await Promise.all([
+            limitedFetch(`https://${region}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${puuid}?api_key=${apiKey}`),
+            limitedFetch(`https://${region}.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}?api_key=${apiKey}`),
+        ])
+        : [null, null];
+    const summoner = start === 0 ? await summonerRes.json() : null;
+    const entries = start === 0 ? await rankRes.json() : null;
 
     const solo = Array.isArray(entries)
         ? entries.find(e => e.queueType === 'RANKED_SOLO_5x5')
         : null;
 
-    const profile = {
-        name: account.gameName,
-        tag: account.tagLine,
-        level: summoner.summonerLevel,
-        iconId: summoner.profileIconId,
-        rank: solo
-            ? { tier: solo.tier, division: solo.rank, lp: solo.leaguePoints, wins: solo.wins, losses: solo.losses }
-            : null,
-    };
+    const profile = start === 0
+        ? {
+            name: account.gameName,
+            tag: account.tagLine,
+            level: summoner.summonerLevel,
+            iconId: summoner.profileIconId,
+            rank: solo
+                ? { tier: solo.tier, division: solo.rank, lp: solo.leaguePoints, wins: solo.wins, losses: solo.losses }
+                : null,
+        }
+        : null;
 
-    const idsUrl = `https://${routing}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=0&count=20&api_key=${apiKey}`;
+    const idsUrl = `https://${routing}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=${start}&count=${count}&api_key=${apiKey}`;
     const idsRes = await limitedFetch(idsUrl);
     const matchIds = await idsRes.json();
 
@@ -202,7 +206,9 @@ export async function getDeathData(gameName, tagLine, region = 'na1') {
         allDeaths.push(...deaths);
     }
 
-    const result = { profile, matches, deaths: allDeaths };
+    const result = start === 0
+        ? { profile, matches, deaths: allDeaths, hasMore: matchIds.length === count }
+        : { matches, deaths: allDeaths, hasMore: matchIds.length === count };
     await redis.set(cacheKey, result, { ex: 300 });
     return result;
 }
