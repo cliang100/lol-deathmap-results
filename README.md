@@ -14,6 +14,7 @@ death is plotted on the Rift map from match timeline data.
   and stats for that game only, "All games" to restore)
 - Profile header with summoner level and solo-queue rank
 - Heatmap/dots toggle for the death visualization
+- Stats sidebar: win rate, avg KDA, avg deaths per game, avg time of death, and an early/mid/late death split
 - Search history stored in localStorage (last 8 searches)
 - 5-minute Redis cache per Riot ID + region
 - Bottleneck rate limiting on Riot API calls, with 404/429 error handling
@@ -63,7 +64,6 @@ UPSTASH_REDIS_REST_TOKEN=your_token_here
 
 In active development. Upcoming work:
 
-- Death stats strip (per-game averages, timing breakdowns)
 - Visual pass over the results page
 - Deployment
 
