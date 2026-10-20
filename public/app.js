@@ -2,6 +2,9 @@ import { gameToCanvas, intensityToColor } from './canvasMath.js';
 import { computeDeathStats } from './deathStats.js';
 
 const searchBtn = document.getElementById('searchBtn');
+const riotIdInput = document.getElementById('riotId');
+const regionSelect = document.getElementById('region');
+const historyDropdown = document.getElementById('historyDropdown');
 const canvas = document.getElementById('heatmapCanvas');
 const ctx = canvas.getContext('2d');
 let lastDeaths = []
@@ -137,6 +140,98 @@ function hideOnError(img) {
     img.addEventListener('error', () => img.remove());
 }
 
+const HISTORY_KEY = 'lolDeathmapHistory';
+const HISTORY_MAX = 8;
+
+function loadHistory() {
+    try {
+        const raw = localStorage.getItem(HISTORY_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveHistoryEntries(entries) {
+    try {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
+    } catch {
+        // storage unavailable; history just won't persist
+    }
+}
+
+function saveHistoryEntry(entry) {
+    const entries = loadHistory();
+    const key = e => `${e.name}#${e.tag} (${e.region})`.toLowerCase();
+    const filtered = entries.filter(e => key(e) !== key(entry));
+    filtered.unshift(entry);
+    saveHistoryEntries(filtered.slice(0, HISTORY_MAX));
+}
+
+function removeHistoryEntry(entry) {
+    const key = e => `${e.name}#${e.tag} (${e.region})`.toLowerCase();
+    saveHistoryEntries(loadHistory().filter(e => key(e) !== key(entry)));
+}
+
+async function renderHistoryDropdown() {
+    const query = riotIdInput.value.trim().toLowerCase();
+    const entries = loadHistory().filter(e =>
+        !query || `${e.name}#${e.tag}`.toLowerCase().includes(query)
+    );
+    historyDropdown.innerHTML = '';
+    if (entries.length === 0) {
+        historyDropdown.hidden = true;
+        return;
+    }
+    historyDropdown.hidden = false;
+    const v = await getDdVersion();
+    for (const entry of entries) {
+        const row = document.createElement('div');
+        row.className = 'history-entry';
+
+        const icon = document.createElement('img');
+        icon.alt = `${entry.name}#${entry.tag}`;
+        icon.src = `https://ddragon.leagueoflegends.com/cdn/${v}/img/profileicon/${entry.iconId}.png`;
+        hideOnError(icon);
+        row.appendChild(icon);
+
+        const name = document.createElement('span');
+        name.className = 'history-name';
+        name.textContent = `${entry.name}#${entry.tag}`;
+        row.appendChild(name);
+
+        const regionLabel = document.createElement('span');
+        regionLabel.className = 'history-region';
+        regionLabel.textContent = entry.region.toUpperCase();
+        row.appendChild(regionLabel);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'history-remove';
+        removeBtn.textContent = '✕';
+        removeBtn.setAttribute('aria-label', `Remove ${entry.name}#${entry.tag}`);
+        removeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            removeHistoryEntry(entry);
+            renderHistoryDropdown();
+        });
+        row.appendChild(removeBtn);
+
+        row.addEventListener('click', () => {
+            riotIdInput.value = `${entry.name}#${entry.tag}`;
+            regionSelect.value = entry.region;
+            historyDropdown.hidden = true;
+            performSearch(entry.name, entry.tag, entry.region);
+        });
+        historyDropdown.appendChild(row);
+    }
+}
+
+function hideHistoryDropdown() {
+    historyDropdown.hidden = true;
+}
+
 function queueName(queueId) {
     switch (queueId) {
         case 420: return 'Ranked Solo';
@@ -268,7 +363,7 @@ async function performSearch(gameName, tagLine, region) {
     }
 
     searchBtn.disabled = true;
-    searchBtn.textContent = 'Loading...';
+    searchBtn.classList.add('loading');
 
     const loadingOverlay = document.getElementById('loading-overlay');
     loadingOverlay.style.display = 'block';
@@ -290,6 +385,7 @@ async function performSearch(gameName, tagLine, region) {
         }
 
         const data = await res.json();
+        saveHistoryEntry({ name: gameName, tag: tagLine, region, iconId: data.profile.iconId });
         renderSearchResults(data);
     } catch (err) {
         console.error(err);
@@ -297,7 +393,7 @@ async function performSearch(gameName, tagLine, region) {
         deathListEl.style.display = 'block';
     } finally {
         searchBtn.disabled = false;
-        searchBtn.textContent = 'Search';
+        searchBtn.classList.remove('loading');
         loadingOverlay.style.display = 'none';
     }
 }
@@ -357,9 +453,21 @@ canvas.addEventListener('mousemove', (e) => {
     }
 });
 
-document.getElementById('riotId').addEventListener('keydown', (e) => {
+riotIdInput.addEventListener('focus', renderHistoryDropdown);
+riotIdInput.addEventListener('click', renderHistoryDropdown);
+riotIdInput.addEventListener('input', renderHistoryDropdown);
+riotIdInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
+        hideHistoryDropdown();
         searchBtn.click();
+    } else if (e.key === 'Escape') {
+        hideHistoryDropdown();
+    }
+});
+
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.search-wrap')) {
+        hideHistoryDropdown();
     }
 });
 

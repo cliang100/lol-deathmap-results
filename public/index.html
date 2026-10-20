@@ -8,8 +8,8 @@
     <header class="top-bar">
         <a class="top-bar-title" href="http://localhost:5173">LoL DEATH MAP</a>
     </header>
-    <div class="search-bar">
-        <input type="text" id="riotId" placeholder="Game name + #NA1">
+    <div class="search-wrap">
+        <div class="search-bar">
         <select id="region">
             <option value="na1">NA</option>
             <option value="euw1">EUW</option>
@@ -23,7 +23,10 @@
             <option value="tr1">TR</option>
             <option value="ru">RU</option>
         </select>
-        <button id="searchBtn">Search</button>
+        <input type="text" id="riotId" placeholder="Game name #Tag" autocomplete="off">
+        <button id="searchBtn" aria-label="Search"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg></button>
+        </div>
+        <div id="historyDropdown" class="history-dropdown" hidden></div>
     </div>
     <div class="page-width">
     <div class="summoner-info">
