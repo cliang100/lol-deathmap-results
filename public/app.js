@@ -98,6 +98,7 @@ async function getDdVersion() {
 
 let champNames = {};
 async function loadChampNames() {
+    if (Object.keys(champNames).length > 0) return;
     try {
         const v = await getDdVersion();
         const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/${v}/data/en_US/champion.json`);
@@ -108,7 +109,7 @@ async function loadChampNames() {
         }
         champNames = map;
     } catch {
-        champNames = {};
+        // keep any existing map so a failed refresh doesn't wipe cached names
     }
 }
 
