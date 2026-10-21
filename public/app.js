@@ -471,6 +471,24 @@ async function loadMore() {
 }
 
 
+function clearResults() {
+    lastDeaths = [];
+    lastMatches = [];
+    selectedMatchId = null;
+
+    const listEl = document.getElementById('matchHistory');
+    listEl.innerHTML = '';
+
+    document.getElementById('summonerName').textContent = '--';
+    document.getElementById('summonerRegion').textContent = '--';
+    document.getElementById('summonerLevel').textContent = '--';
+    document.getElementById('summonerRank').textContent = '--';
+    document.getElementById('summonerIcon').removeAttribute('src');
+
+    renderSelection();
+}
+
+
 async function performSearch(gameName, tagLine, region) {
     const deathListEl = document.getElementById('deathList');
 
@@ -484,6 +502,8 @@ async function performSearch(gameName, tagLine, region) {
     nextStart = 0;
     loadingMore = false;
     currentSearch = null;
+
+    clearResults();
 
     searchBtn.disabled = true;
     searchBtn.classList.add('loading');
