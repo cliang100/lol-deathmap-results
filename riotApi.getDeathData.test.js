@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-const { redisGet, redisSet, redisMget } = vi.hoisted(() => ({
+const { redisGet, redisSet, redisMget, redisTtl, redisDel } = vi.hoisted(() => ({
   redisGet: vi.fn(),
   redisSet: vi.fn(),
   redisMget: vi.fn(),
+  redisTtl: vi.fn(),
+  redisDel: vi.fn(),
 }));
 
 vi.mock('@upstash/redis', () => {
@@ -11,11 +13,13 @@ vi.mock('@upstash/redis', () => {
     get = redisGet;
     set = redisSet;
     mget = redisMget;
+    ttl = redisTtl;
+    del = redisDel;
   }
   return { Redis: FakeRedis };
 });
 
-import { getDeathData } from './riotApi.js';
+import { getDeathData, claimRefresh } from './riotApi.js';
 
 const PUUID = 'test-puuid-123';
 
@@ -36,6 +40,8 @@ beforeEach(() => {
   redisGet.mockReset().mockResolvedValue(null);
   redisSet.mockReset().mockResolvedValue('OK');
   redisMget.mockReset().mockImplementation(async (...keys) => keys.map(() => null));
+  redisTtl.mockReset().mockResolvedValue(-1);
+  redisDel.mockReset().mockResolvedValue(1);
 });
 
 afterEach(() => {
@@ -463,5 +469,51 @@ describe('getDeathData', () => {
     vi.stubGlobal('fetch', routeFetch(matchRoutes(['NA1_A'])));
     const partial = await getDeathData('TestName', 'T1', 'na1', 0, 2);
     expect(partial.hasMore).toBe(false);
+  });
+
+  it('with refresh=true skips the full-result cache read, still fetches, and writes to cache', async () => {
+    const fetchMock = routeFetch([
+      ['by-riot-id', jsonResponse({ puuid: PUUID, gameName: 'TestName', tagLine: 'T1' })],
+      ['summoners/by-puuid', jsonResponse({ summonerLevel: 30, profileIconId: 1 })],
+      ['entries/by-puuid', jsonResponse([])],
+      ['/ids?', jsonResponse([])],
+    ]);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await getDeathData('TestName', 'T1', 'na1', 0, 20, true);
+
+    expect(redisGet).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalled();
+    expect(redisSet).toHaveBeenCalledWith('testname#t1#na1#0#20', expect.anything(), { ex: 300 });
+  });
+});
+
+describe('claimRefresh', () => {
+  it('calls redis.set with the refresh key and returns ok when set resolves OK', async () => {
+    redisSet.mockResolvedValue('OK');
+
+    const result = await claimRefresh('testname', 't1', 'na1');
+
+    expect(result).toEqual({ ok: true });
+    expect(redisSet).toHaveBeenCalledWith('refresh:v1:testname#t1#na1', 1, { nx: true, ex: 120 });
+  });
+
+  it('returns retryAfter from ttl when set resolves null', async () => {
+    redisSet.mockResolvedValue(null);
+    redisTtl.mockResolvedValue(87);
+
+    const result = await claimRefresh('testname', 't1', 'na1');
+
+    expect(result).toEqual({ ok: false, retryAfter: 87 });
+    expect(redisTtl).toHaveBeenCalledWith('refresh:v1:testname#t1#na1');
+  });
+
+  it('falls back to REFRESH_COOLDOWN_SEC when ttl resolves -1', async () => {
+    redisSet.mockResolvedValue(null);
+    redisTtl.mockResolvedValue(-1);
+
+    const result = await claimRefresh('testname', 't1', 'na1');
+
+    expect(result).toEqual({ ok: false, retryAfter: 120 });
   });
 });

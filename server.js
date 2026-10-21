@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDeathData } from './riotApi.js';
+import { getDeathData, claimRefresh, releaseRefresh } from './riotApi.js';
 import { parsePaging } from './paging.js';
 import cors from 'cors';
 
@@ -12,11 +12,24 @@ app.use(express.static('public'));
 app.get('/api/deaths/:region/:gameName/:tagLine', async(req, res) => {
     const { region, gameName, tagLine } = req.params;
     const { start, count } = parsePaging(req.query);
+    const refresh = req.query.refresh === '1' && start === 0;
 
+    let claimed = false;
     try {
-        const deaths = await getDeathData(gameName, tagLine, region, start, count);
+        if (refresh) {
+            const result = await claimRefresh(gameName, tagLine, region);
+            if (!result.ok) {
+                res.set('Retry-After', String(result.retryAfter));
+                return res.status(429).json({ error: `Refresh available in ${result.retryAfter}s`, retryAfter: result.retryAfter });
+            }
+            claimed = true;
+        }
+        const deaths = await getDeathData(gameName, tagLine, region, start, count, refresh);
         res.json(deaths);
     } catch (err) {
+        if (claimed) {
+            await releaseRefresh(gameName, tagLine, region).catch(() => {});
+        }
         console.error(err);
         if (err.status === 429) {
             res.status(429).json({ error: err.message });

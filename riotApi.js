@@ -34,6 +34,29 @@ function matchCacheKey(puuid, matchId) {
 }
 
 
+export const REFRESH_COOLDOWN_SEC = 120;
+
+function refreshKey(gameName, tagLine, region) {
+    return `refresh:v1:${gameName}#${tagLine}#${region}`.toLowerCase();
+}
+
+
+export async function claimRefresh(gameName, tagLine, region) {
+    const key = refreshKey(gameName, tagLine, region);
+    const result = await redis.set(key, 1, { nx: true, ex: REFRESH_COOLDOWN_SEC });
+    if (result) {
+        return { ok: true };
+    }
+    const ttl = await redis.ttl(key);
+    return { ok: false, retryAfter: ttl > 0 ? ttl : REFRESH_COOLDOWN_SEC };
+}
+
+
+export async function releaseRefresh(gameName, tagLine, region) {
+    await redis.del(refreshKey(gameName, tagLine, region));
+}
+
+
 function processGame(puuid, matchId, match, timeline) {
     const me = match.info.participants.find(p => p.puuid === puuid);
     const myId = me.participantId;
@@ -84,10 +107,13 @@ export function msToClock(ms) {
 }
 
 
-export async function getDeathData(gameName, tagLine, region = 'na1', start = 0, count = 20) {
+export async function getDeathData(gameName, tagLine, region = 'na1', start = 0, count = 20, refresh = false) {
     const routing = regionToRouting[region] || 'americas';
     const cacheKey = `${gameName}#${tagLine}#${region}#${start}#${count}`.toLowerCase();
-    const cached = await redis.get(cacheKey);
+    let cached = null;
+    if (!refresh) {
+        cached = await redis.get(cacheKey);
+    }
     if (cached) {
         console.log('Cache hit:', cacheKey);
         return cached;
