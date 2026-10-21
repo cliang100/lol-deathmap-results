@@ -55,7 +55,7 @@ describe('getDeathData', () => {
     const result = await getDeathData('SomeName', 'TAG', 'na1');
 
     expect(result).toEqual(cached);
-    expect(redisGet).toHaveBeenCalledWith('somename#tag#na1#0');
+    expect(redisGet).toHaveBeenCalledWith('somename#tag#na1#0#20');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -160,7 +160,7 @@ describe('getDeathData', () => {
       { matchId, queueId: 420, championName: 'Ahri', teamId: 100, items: [6653, 3020, 3089, 0, 0, 0, 3340], win: true, kills: 5, deaths: 1, assists: 7, cs: 200, gameDuration: 1800, gameCreation: 1700000000000 },
     ]);
     expect(redisSet).toHaveBeenCalledWith(
-      'testname#t1#na1#0',
+      'testname#t1#na1#0#20',
       result,
       { ex: 300 }
     );
@@ -248,7 +248,7 @@ describe('getDeathData', () => {
     expect(result.deaths).toEqual(cachedGame.deaths);
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining(`/matches/${matchId}?`));
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining(`/matches/${matchId}/timeline`));
-    expect(redisSet).toHaveBeenCalledWith('testname#t1#na1#0', result, { ex: 300 });
+    expect(redisSet).toHaveBeenCalledWith('testname#t1#na1#0#20', result, { ex: 300 });
   });
 
   it('fetches only the missing ids on partial per-match cache', async () => {
@@ -389,7 +389,7 @@ describe('getDeathData', () => {
     expect(result.matches).toEqual([]);
     expect(result.deaths).toEqual([]);
     expect(redisMget).not.toHaveBeenCalled();
-    expect(redisSet).toHaveBeenCalledWith('testname#t1#na1#0', result, { ex: 300 });
+    expect(redisSet).toHaveBeenCalledWith('testname#t1#na1#0#20', result, { ex: 300 });
   });
 
   it('start > 0 skips summoner/rank fetches and returns no profile', async () => {
@@ -419,7 +419,7 @@ describe('getDeathData', () => {
 
     expect(result).not.toHaveProperty('profile');
     expect(result.matches.map(m => m.matchId)).toEqual([matchId]);
-    expect(redisGet).toHaveBeenCalledWith('testname#t1#na1#20');
+    expect(redisGet).toHaveBeenCalledWith('testname#t1#na1#20#20');
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('summoners/by-puuid'));
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining('entries/by-puuid'));
   });

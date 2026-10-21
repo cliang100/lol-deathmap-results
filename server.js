@@ -13,7 +13,9 @@ app.get('/api/deaths/:region/:gameName/:tagLine', async(req, res) => {
     let start = parseInt(req.query.start, 10);
     if (!Number.isInteger(start) || start < 0) start = 0;
     let count = parseInt(req.query.count, 10);
-    if (!Number.isInteger(count) || count < 1 || count > 20) count = 20;
+    if (!Number.isInteger(count)) count = 20;
+    else if (count < 1) count = 1;
+    else if (count > 20) count = 20;
 
     try {
         const deaths = await getDeathData(gameName, tagLine, region, start, count);

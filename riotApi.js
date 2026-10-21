@@ -86,7 +86,7 @@ export function msToClock(ms) {
 
 export async function getDeathData(gameName, tagLine, region = 'na1', start = 0, count = 20) {
     const routing = regionToRouting[region] || 'americas';
-    const cacheKey = `${gameName}#${tagLine}#${region}#${start}`.toLowerCase();
+    const cacheKey = `${gameName}#${tagLine}#${region}#${start}#${count}`.toLowerCase();
     const cached = await redis.get(cacheKey);
     if (cached) {
         console.log('Cache hit:', cacheKey);
