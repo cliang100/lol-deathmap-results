@@ -638,6 +638,36 @@ h1 {
     border-radius: 4px;
 }
 
+.load-more-btn {
+    width: 100%;
+    flex-shrink: 0;
+    padding: 10px;
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: 150ms ease;
+    font-family: inherit;
+    font-size: 13px;
+}
+
+.load-more-btn:hover:not(:disabled) {
+    border-color: var(--accent);
+}
+
+.load-more-btn:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+.load-more-error {
+    font-size: 12px;
+    color: var(--loss);
+    text-align: center;
+    margin-top: 6px;
+}
+
 .match-item-icon.trinket {
     width: 18px;
     height: 18px;

@@ -13,6 +13,12 @@ let lastMatches = [];
 let selectedMatchId = null;
 let currentMode = 'heatmap';
 
+const PAGE_SIZE = 20;
+let nextStart = 0;
+let hasMore = false;
+let loadingMore = false;
+let currentSearch = null;
+
 function formatDuration(seconds) {
     const m = Math.floor(seconds / 60);
     const s = Math.floor(seconds % 60);
@@ -340,6 +346,15 @@ async function renderMatchHistory() {
 
         listEl.appendChild(row);
     }
+
+    if (hasMore) {
+        const btn = document.createElement('button');
+        btn.className = 'load-more-btn';
+        btn.disabled = loadingMore;
+        btn.textContent = loadingMore ? 'Loading...' : 'Load more';
+        btn.addEventListener('click', loadMore);
+        listEl.appendChild(btn);
+    }
 }
 
 function selectMatch(matchId) {
@@ -391,6 +406,71 @@ function renderSelection() {
 }
 
 
+async function loadMore() {
+    if (loadingMore || !hasMore || !currentSearch) return;
+
+    const search = currentSearch;
+    const { gameName, tagLine, region } = search;
+
+    loadingMore = true;
+    const listEl = document.getElementById('matchHistory');
+    const scrollTop = listEl.scrollTop;
+    await renderMatchHistory();
+    listEl.scrollTop = scrollTop;
+
+    try {
+        const res = await fetch(
+            `/api/deaths/${region}/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}?start=${nextStart}&count=${PAGE_SIZE}`
+        );
+
+        if (!res.ok) {
+            let message = 'Could not load more games.';
+            try {
+                const errBody = await res.json();
+                if (errBody && errBody.error) message = errBody.error;
+            } catch {
+                // keep the default message if the error body isn't JSON
+            }
+            const btn = listEl.querySelector('.load-more-btn');
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Load more';
+            }
+            const errEl = document.createElement('div');
+            errEl.className = 'load-more-error';
+            errEl.textContent = message;
+            listEl.appendChild(errEl);
+            return;
+        }
+
+        const data = await res.json();
+        if (currentSearch !== search) return;
+
+        lastMatches.push(...data.matches);
+        lastDeaths.push(...data.deaths);
+        hasMore = data.hasMore;
+        nextStart += PAGE_SIZE;
+
+        const scrollTop2 = listEl.scrollTop;
+        await renderMatchHistory();
+        listEl.scrollTop = scrollTop2;
+        renderSelection();
+    } catch {
+        const btn = listEl.querySelector('.load-more-btn');
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Load more';
+        }
+        const errEl = document.createElement('div');
+        errEl.className = 'load-more-error';
+        errEl.textContent = 'Could not load more games.';
+        listEl.appendChild(errEl);
+    } finally {
+        loadingMore = false;
+    }
+}
+
+
 async function performSearch(gameName, tagLine, region) {
     const deathListEl = document.getElementById('deathList');
 
@@ -399,6 +479,11 @@ async function performSearch(gameName, tagLine, region) {
         deathListEl.style.display = 'block';
         return;
     }
+
+    hasMore = false;
+    nextStart = 0;
+    loadingMore = false;
+    currentSearch = null;
 
     searchBtn.disabled = true;
     searchBtn.classList.add('loading');
@@ -425,6 +510,9 @@ async function performSearch(gameName, tagLine, region) {
         const data = await res.json();
         await loadChampNames();
         saveHistoryEntry({ name: gameName, tag: tagLine, region, iconId: data.profile.iconId });
+        currentSearch = { gameName, tagLine, region };
+        hasMore = data.hasMore;
+        nextStart = PAGE_SIZE;
         renderSearchResults(data);
     } catch (err) {
         console.error(err);
