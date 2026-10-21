@@ -488,6 +488,19 @@ function clearResults() {
     renderSelection();
 }
 
+function showNotFound(gameName, tagLine, region) {
+    const regionSelect = document.getElementById('region');
+    const regionLabel = Array.from(regionSelect.options).find(o => o.value === region)?.text || region;
+    document.getElementById('notFoundText').textContent =
+        `We couldn't find ${gameName}#${tagLine} in ${regionLabel}. Check the name, tag and region.`;
+    document.querySelector('.page-width').classList.add('not-found-mode');
+}
+
+
+function hideNotFound() {
+    document.querySelector('.page-width').classList.remove('not-found-mode');
+}
+
 
 async function performSearch(gameName, tagLine, region) {
     const deathListEl = document.getElementById('deathList');
@@ -505,6 +518,8 @@ async function performSearch(gameName, tagLine, region) {
 
     clearResults();
 
+    hideNotFound();
+
     searchBtn.disabled = true;
     searchBtn.classList.add('loading');
 
@@ -515,6 +530,10 @@ async function performSearch(gameName, tagLine, region) {
         const res = await fetch(`/api/deaths/${region}/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`);
 
         if (!res.ok) {
+            if (res.status === 404) {
+                showNotFound(gameName, tagLine, region);
+                return;
+            }
             let message = 'Could not find that summoner. Check the name and tag.';
             try {
                 const errBody = await res.json();

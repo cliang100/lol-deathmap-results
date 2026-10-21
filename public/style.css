@@ -673,3 +673,39 @@ h1 {
     height: 18px;
     align-self: center;
 }
+
+.not-found {
+    display: none;
+    text-align: center;
+    padding: 60px 0;
+}
+
+.page-width.not-found-mode .not-found {
+    display: block;
+}
+
+.page-width.not-found-mode .summoner-info,
+.page-width.not-found-mode .page-layout {
+    display: none;
+}
+
+.not-found-code {
+    font-family: 'Oswald', sans-serif;
+    font-size: clamp(96px, 20vw, 220px);
+    line-height: 1;
+    color: var(--accent);
+    margin: 0;
+}
+
+.not-found-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 36px;
+    color: var(--text);
+    margin: 8px 0;
+}
+
+.not-found-text {
+    color: var(--muted);
+    font-size: 15px;
+    margin: 0;
+}
