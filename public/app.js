@@ -5,6 +5,9 @@ import { computeMatchStats, computeDeathTiming } from './matchStats.js';
 const searchBtn = document.getElementById('searchBtn');
 const riotIdInput = document.getElementById('riotId');
 const regionSelect = document.getElementById('region');
+const refreshBtn = document.getElementById('refreshBtn');
+const refreshMsg = document.getElementById('refreshMsg');
+const refreshWrap = document.querySelector('.refresh-wrap');
 const historyDropdown = document.getElementById('historyDropdown');
 const canvas = document.getElementById('heatmapCanvas');
 const ctx = canvas.getContext('2d');
@@ -18,6 +21,8 @@ let nextStart = 0;
 let hasMore = false;
 let loadingMore = false;
 let currentSearch = null;
+let refreshing = false;
+let refreshTimer = null;
 
 function formatDuration(seconds) {
     const m = Math.floor(seconds / 60);
@@ -471,6 +476,33 @@ async function loadMore() {
 }
 
 
+function resetRefreshUi() {
+    clearInterval(refreshTimer);
+    refreshTimer = null;
+    refreshBtn.disabled = false;
+    refreshBtn.textContent = 'Refresh';
+    refreshMsg.textContent = '';
+    refreshWrap.classList.remove('visible');
+}
+
+function startCooldown(seconds) {
+    clearInterval(refreshTimer);
+    refreshBtn.disabled = true;
+    let remaining = seconds;
+    refreshBtn.textContent = `Refresh (${remaining}s)`;
+    refreshTimer = setInterval(() => {
+        remaining--;
+        if (remaining <= 0) {
+            clearInterval(refreshTimer);
+            refreshTimer = null;
+            refreshBtn.textContent = 'Refresh';
+            refreshBtn.disabled = false;
+        } else {
+            refreshBtn.textContent = `Refresh (${remaining}s)`;
+        }
+    }, 1000);
+}
+
 function clearResults() {
     lastDeaths = [];
     lastMatches = [];
@@ -518,6 +550,8 @@ async function performSearch(gameName, tagLine, region) {
 
     clearResults();
 
+    resetRefreshUi();
+
     hideNotFound();
 
     searchBtn.disabled = true;
@@ -552,6 +586,7 @@ async function performSearch(gameName, tagLine, region) {
         currentSearch = { gameName, tagLine, region };
         hasMore = data.hasMore;
         nextStart = PAGE_SIZE;
+        refreshWrap.classList.add('visible');
         renderSearchResults(data);
     } catch (err) {
         console.error(err);
@@ -564,12 +599,66 @@ async function performSearch(gameName, tagLine, region) {
     }
 }
 
+async function refresh() {
+    if (refreshing || loadingMore || !currentSearch) return;
+
+    const search = currentSearch;
+    refreshing = true;
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = 'Refreshing...';
+    refreshMsg.textContent = '';
+
+    try {
+        const { gameName, tagLine, region } = search;
+        const res = await fetch(`/api/deaths/${region}/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}?refresh=1`);
+
+        if (!res.ok) {
+            let retryAfter = null;
+            let message = 'Could not refresh.';
+            try {
+                const errBody = await res.json();
+                if (res.status === 429 && typeof errBody.retryAfter === 'number') {
+                    retryAfter = errBody.retryAfter;
+                } else if (errBody && errBody.error) {
+                    message = errBody.error;
+                }
+            } catch {
+                // keep default message if body isn't JSON
+            }
+            if (retryAfter !== null) {
+                startCooldown(retryAfter);
+            } else {
+                refreshMsg.textContent = message;
+                refreshBtn.disabled = false;
+                refreshBtn.textContent = 'Refresh';
+            }
+            return;
+        }
+
+        const data = await res.json();
+        if (currentSearch !== search) return;
+
+        hasMore = data.hasMore;
+        nextStart = PAGE_SIZE;
+        renderSearchResults(data);
+        startCooldown(120);
+    } catch {
+        refreshMsg.textContent = 'Could not reach the server.';
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = 'Refresh';
+    } finally {
+        refreshing = false;
+    }
+}
+
 searchBtn.addEventListener('click', () => {
     const raw = document.getElementById('riotId').value;
     const [gameName, tagLine] = raw.split('#').map(s => s.trim());
     const region = document.getElementById('region').value;
     performSearch(gameName, tagLine, region);
 });
+
+refreshBtn.addEventListener('click', () => refresh());
 
 canvas.addEventListener('mousemove', (e) => {
     if (currentMode !== 'dots') return;
