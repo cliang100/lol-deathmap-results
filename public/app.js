@@ -534,7 +534,7 @@ function hideNotFound() {
 }
 
 
-async function performSearch(gameName, tagLine, region) {
+async function performSearch(gameName, tagLine, region, pushUrl = true) {
     const deathListEl = document.getElementById('deathList');
 
     if (!gameName || !tagLine) {
@@ -584,6 +584,13 @@ async function performSearch(gameName, tagLine, region) {
         await loadChampNames();
         saveHistoryEntry({ name: gameName, tag: tagLine, region, iconId: data.profile.iconId });
         currentSearch = { gameName, tagLine, region };
+        if (pushUrl) {
+            const params = new URLSearchParams({ riotId: gameName, tag: tagLine, region });
+            const nextSearch = `?${params}`;
+            if (nextSearch !== window.location.search) {
+                history.pushState(null, '', nextSearch);
+            }
+        }
         hasMore = data.hasMore;
         nextStart = PAGE_SIZE;
         refreshWrap.classList.add('visible');
@@ -749,5 +756,26 @@ const urlRegion = params.get('region');
 if (urlRiotId && urlTag) {
     document.getElementById('riotId').value = `${urlRiotId}#${urlTag}`;
     document.getElementById('region').value = urlRegion || 'na1';
-    performSearch(urlRiotId, urlTag, urlRegion || 'na1');
+    performSearch(urlRiotId, urlTag, urlRegion || 'na1', false);
 }
+
+window.addEventListener('popstate', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const riotId = urlParams.get('riotId');
+    const tag = urlParams.get('tag');
+    const region = urlParams.get('region') || 'na1';
+    if (riotId && tag) {
+        document.getElementById('riotId').value = `${riotId}#${tag}`;
+        document.getElementById('region').value = region;
+        performSearch(riotId, tag, region, false);
+    } else {
+        clearResults();
+        resetRefreshUi();
+        hideNotFound();
+        hasMore = false;
+        nextStart = 0;
+        loadingMore = false;
+        currentSearch = null;
+        document.getElementById('riotId').value = '';
+    }
+});
