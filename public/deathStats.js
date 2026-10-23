@@ -17,6 +17,4 @@ export function computeDeathStats(deaths) {
     return { matchCount, killerCounts, topKiller, topCount };
 }
 
-if (typeof module !== 'undefined') {
-    module.exports = { computeDeathStats };
-}
+
