@@ -481,7 +481,7 @@ function resetRefreshUi() {
     clearInterval(refreshTimer);
     refreshTimer = null;
     refreshBtn.disabled = false;
-    refreshBtn.textContent = 'Refresh';
+    refreshBtn.textContent = 'Update';
     refreshMsg.textContent = '';
     refreshWrap.classList.remove('visible');
 }
@@ -490,16 +490,14 @@ function startCooldown(seconds) {
     clearInterval(refreshTimer);
     refreshBtn.disabled = true;
     let remaining = seconds;
-    refreshBtn.textContent = `Refresh (${remaining}s)`;
+    refreshBtn.textContent = 'Update';
     refreshTimer = setInterval(() => {
         remaining--;
         if (remaining <= 0) {
             clearInterval(refreshTimer);
             refreshTimer = null;
-            refreshBtn.textContent = 'Refresh';
+            refreshBtn.textContent = 'Update';
             refreshBtn.disabled = false;
-        } else {
-            refreshBtn.textContent = `Refresh (${remaining}s)`;
         }
     }, 1000);
 }
@@ -613,7 +611,7 @@ async function refresh() {
     const search = currentSearch;
     refreshing = true;
     refreshBtn.disabled = true;
-    refreshBtn.textContent = 'Refreshing...';
+    refreshBtn.textContent = 'Updating...';
     refreshMsg.textContent = '';
 
     try {
@@ -639,7 +637,7 @@ async function refresh() {
             } else {
                 refreshMsg.textContent = message;
                 refreshBtn.disabled = false;
-                refreshBtn.textContent = 'Refresh';
+                refreshBtn.textContent = 'Update';
             }
             return;
         }
@@ -655,7 +653,7 @@ async function refresh() {
         if (currentSearch !== search) return;
         refreshMsg.textContent = 'Could not reach the server.';
         refreshBtn.disabled = false;
-        refreshBtn.textContent = 'Refresh';
+        refreshBtn.textContent = 'Update';
     } finally {
         refreshing = false;
     }
