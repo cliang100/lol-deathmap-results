@@ -489,17 +489,26 @@ function resetRefreshUi() {
 function startCooldown(seconds) {
     clearInterval(refreshTimer);
     refreshBtn.disabled = true;
-    let remaining = seconds;
+    const endTime = Date.now() + seconds * 1000;
     refreshBtn.textContent = 'Update';
-    refreshTimer = setInterval(() => {
-        remaining--;
+    const tick = () => {
+        const remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
         if (remaining <= 0) {
             clearInterval(refreshTimer);
             refreshTimer = null;
             refreshBtn.textContent = 'Update';
             refreshBtn.disabled = false;
+            refreshMsg.textContent = '';
+        } else if (remaining >= 120) {
+            refreshMsg.textContent = 'Update available in 2 min';
+        } else if (remaining >= 61) {
+            refreshMsg.textContent = 'Update available in 1 min';
+        } else {
+            refreshMsg.textContent = `Update available in ${remaining}s`;
         }
-    }, 1000);
+    };
+    tick();
+    refreshTimer = setInterval(tick, 1000);
 }
 
 function clearResults() {
