@@ -621,6 +621,7 @@ async function refresh() {
         const res = await fetch(`/api/deaths/${region}/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}?refresh=1`);
 
         if (!res.ok) {
+            if (currentSearch !== search) return;
             let retryAfter = null;
             let message = 'Could not refresh.';
             try {
@@ -651,6 +652,7 @@ async function refresh() {
         renderSearchResults(data);
         startCooldown(120);
     } catch {
+        if (currentSearch !== search) return;
         refreshMsg.textContent = 'Could not reach the server.';
         refreshBtn.disabled = false;
         refreshBtn.textContent = 'Refresh';
