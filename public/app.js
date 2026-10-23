@@ -237,7 +237,8 @@ async function renderHistoryDropdown() {
 
         const regionLabel = document.createElement('span');
         regionLabel.className = 'history-region';
-        regionLabel.textContent = entry.region.toUpperCase();
+        const regionOption = Array.from(regionSelect.options).find(o => o.value === entry.region);
+        regionLabel.textContent = regionOption ? regionOption.text : entry.region.toUpperCase();
         row.appendChild(regionLabel);
 
         const removeBtn = document.createElement('button');
