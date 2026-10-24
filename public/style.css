@@ -677,7 +677,7 @@ h1 {
 .refresh-wrap {
     display: none;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: flex-start;
     gap: 6px;
 }
 
