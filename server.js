@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDeathData, claimRefresh, releaseRefresh } from './riotApi.js';
+import { getDeathData, claimRefresh, releaseRefresh, getRefreshRemaining } from './riotApi.js';
 import { parsePaging } from './paging.js';
 import cors from 'cors';
 
@@ -25,7 +25,12 @@ app.get('/api/deaths/:region/:gameName/:tagLine', async(req, res) => {
             claimed = true;
         }
         const deaths = await getDeathData(gameName, tagLine, region, start, count, refresh);
-        res.json(deaths);
+        if (start === 0) {
+            const cooldownRemaining = await getRefreshRemaining(gameName, tagLine, region);
+            res.json({ ...deaths, cooldownRemaining });
+        } else {
+            res.json(deaths);
+        }
     } catch (err) {
         if (claimed) {
             await releaseRefresh(gameName, tagLine, region).catch(() => {});

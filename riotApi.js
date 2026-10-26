@@ -57,6 +57,12 @@ export async function releaseRefresh(gameName, tagLine, region) {
 }
 
 
+export async function getRefreshRemaining(gameName, tagLine, region) {
+    const ttl = await redis.ttl(refreshKey(gameName, tagLine, region));
+    return ttl > 0 ? ttl : 0;
+}
+
+
 function processGame(puuid, matchId, match, timeline) {
     const me = match.info.participants.find(p => p.puuid === puuid);
     const myId = me.participantId;

@@ -19,7 +19,7 @@ vi.mock('@upstash/redis', () => {
   return { Redis: FakeRedis };
 });
 
-import { getDeathData, claimRefresh } from './riotApi.js';
+import { getDeathData, claimRefresh, getRefreshRemaining } from './riotApi.js';
 
 const PUUID = 'test-puuid-123';
 
@@ -515,5 +515,32 @@ describe('claimRefresh', () => {
     const result = await claimRefresh('testname', 't1', 'na1');
 
     expect(result).toEqual({ ok: false, retryAfter: 120 });
+  });
+});
+
+describe('getRefreshRemaining', () => {
+  it('returns ttl when ttl is greater than 0', async () => {
+    redisTtl.mockResolvedValue(87);
+
+    const result = await getRefreshRemaining('testname', 't1', 'na1');
+
+    expect(result).toBe(87);
+    expect(redisTtl).toHaveBeenCalledWith('refresh:v1:testname#t1#na1');
+  });
+
+  it('returns 0 when ttl is -2 (missing key)', async () => {
+    redisTtl.mockResolvedValue(-2);
+
+    const result = await getRefreshRemaining('testname', 't1', 'na1');
+
+    expect(result).toBe(0);
+  });
+
+  it('returns 0 when ttl is -1 (no expiry)', async () => {
+    redisTtl.mockResolvedValue(-1);
+
+    const result = await getRefreshRemaining('testname', 't1', 'na1');
+
+    expect(result).toBe(0);
   });
 });
