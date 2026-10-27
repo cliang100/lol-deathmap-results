@@ -75,6 +75,19 @@ describe('getDeathData', () => {
     expect(redisSet).not.toHaveBeenCalled();
   });
 
+  it('encodes name and tag in the account URL', async () => {
+    const fetchMock = vi.fn(async () => {
+      throw new Error('should not be reached');
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await getDeathData('a/b', 'c?d', 'na1').catch(() => {});
+
+    const url = fetchMock.mock.calls[0][0];
+    expect(url).toContain('a%2Fb/c%3Fd');
+    expect(url).not.toContain('a/b/c?d');
+  });
+
   it('throws a rate-limit error with status 429 when the account fetch is rate limited', async () => {
     vi.stubGlobal(
       'fetch',

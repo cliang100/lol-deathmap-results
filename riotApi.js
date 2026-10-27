@@ -138,7 +138,7 @@ export async function getDeathData(gameName, tagLine, region = 'na1', start = 0,
         return cached;
     }
 
-    const accountUrl = `https://${routing}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${gameName}/${tagLine}?api_key=${apiKey}`;
+    const accountUrl = `https://${routing}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}?api_key=${apiKey}`;
     const accountRes = await limitedFetch(accountUrl);
     const account = await accountRes.json();
 
