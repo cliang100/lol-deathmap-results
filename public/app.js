@@ -1,4 +1,5 @@
 import { gameToCanvas, intensityToColor } from './canvasMath.js';
+import { timeAgo } from './timeAgo.js';
 import { computeDeathStats } from './deathStats.js';
 import { computeMatchStats, computeDeathTiming } from './matchStats.js';
 
@@ -21,6 +22,7 @@ let nextStart = 0;
 let hasMore = false;
 let loadingMore = false;
 let currentSearch = null;
+let lastUpdatedAt = null;
 let refreshing = false;
 let refreshTimer = null;
 
@@ -483,7 +485,16 @@ function resetRefreshUi() {
     refreshBtn.disabled = false;
     refreshBtn.textContent = 'Update';
     refreshMsg.textContent = '';
+    lastUpdatedAt = null;
     refreshWrap.classList.remove('visible');
+}
+
+function renderLastUpdated() {
+    if (lastUpdatedAt && refreshTimer === null) {
+        refreshMsg.textContent = `Last updated ${timeAgo(lastUpdatedAt, Date.now())}`;
+    } else {
+        refreshMsg.textContent = '';
+    }
 }
 
 function startCooldown(seconds) {
@@ -498,7 +509,7 @@ function startCooldown(seconds) {
             refreshTimer = null;
             refreshBtn.textContent = 'Update';
             refreshBtn.disabled = false;
-            refreshMsg.textContent = '';
+            renderLastUpdated();
         } else if (remaining >= 120) {
             refreshMsg.textContent = 'Update available in 2 min';
         } else if (remaining >= 61) {
@@ -606,6 +617,8 @@ async function performSearch(gameName, tagLine, region, pushUrl = true) {
         nextStart = PAGE_SIZE;
         refreshWrap.classList.add('visible');
         renderSearchResults(data);
+        lastUpdatedAt = typeof data.updatedAt === 'number' ? data.updatedAt : null;
+        renderLastUpdated();
     } catch (err) {
         console.error(err);
         deathListEl.textContent = 'Could not reach the server.';
@@ -660,6 +673,7 @@ async function refresh() {
         hasMore = data.hasMore;
         nextStart = PAGE_SIZE;
         renderSearchResults(data);
+        lastUpdatedAt = typeof data.updatedAt === 'number' ? data.updatedAt : null;
         startCooldown(120);
     } catch {
         if (currentSearch !== search) return;
