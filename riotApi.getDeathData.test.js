@@ -19,7 +19,7 @@ vi.mock('@upstash/redis', () => {
   return { Redis: FakeRedis };
 });
 
-import { getDeathData, claimRefresh, getRefreshRemaining, getUpdatedAt, isValidRegion } from './riotApi.js';
+import { getDeathData, claimRefresh, getRefreshRemaining, getUpdatedAt, isValidRegion, isValidRiotId } from './riotApi.js';
 
 const PUUID = 'test-puuid-123';
 
@@ -633,5 +633,25 @@ describe('isValidRegion', () => {
     expect(isValidRegion('constructor')).toBe(false);
     expect(isValidRegion('__proto__')).toBe(false);
     expect(isValidRegion('NA1 ')).toBe(false);
+  });
+});
+
+describe('isValidRiotId', () => {
+  it('returns true for valid gameName and tagLine', () => {
+    expect(isValidRiotId('Senyuuto', 'FAKER')).toBe(true);
+    expect(isValidRiotId('Hide on bush', 'KR1')).toBe(true);
+  });
+
+  it('returns false for invalid gameName', () => {
+    expect(isValidRiotId('a/b', 'c')).toBe(false);
+    expect(isValidRiotId('a', 'c?d')).toBe(false);
+    expect(isValidRiotId('a#b', 'c')).toBe(false);
+    expect(isValidRiotId('', 'c')).toBe(false);
+    expect(isValidRiotId('a'.repeat(65), 'c')).toBe(false);
+  });
+
+  it('returns false for invalid tagLine', () => {
+    expect(isValidRiotId('name', '')).toBe(false);
+    expect(isValidRiotId('name', 'TOOLONGTAG12')).toBe(false);
   });
 });

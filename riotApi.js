@@ -44,6 +44,12 @@ export function isValidRegion(region) {
     return Object.hasOwn(regionToRouting, region);
 }
 
+export function isValidRiotId(gameName, tagLine) {
+    if (typeof gameName !== 'string' || gameName.length === 0 || gameName.length > 64) return false;
+    if (/[/\\?#%]/.test(gameName)) return false;
+    return /^[A-Za-z0-9]{1,10}$/.test(tagLine);
+}
+
 function updatedKey(gameName, tagLine, region) {
     return `updated:v1:${gameName}#${tagLine}#${region}`.toLowerCase();
 }
