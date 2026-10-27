@@ -168,6 +168,22 @@ export async function getDeathData(gameName, tagLine, region = 'na1', start = 0,
             limitedFetch(`https://${region}.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}?api_key=${apiKey}`),
         ])
         : [null, null];
+    if (start === 0 && !summonerRes.ok) {
+        console.log('Summoner fetch failed:', summonerRes.status, summonerRes);
+        if (summonerRes.status === 429) {
+            const err = new Error('Rate limited by Riot API. Please try again shortly.');
+            err.status = 429;
+            throw err;
+        }
+        if (summonerRes.status === 404) {
+            const err = new Error(`No summoner found for ${gameName}#${tagLine} in ${region}`);
+            err.status = 404;
+            throw err;
+        }
+        const err = new Error(`Summoner fetch failed for ${gameName}#${tagLine} in ${region}`);
+        err.status = summonerRes.status;
+        throw err;
+    }
     const summoner = start === 0 ? await summonerRes.json() : null;
     const entries = start === 0 ? await rankRes.json() : null;
 

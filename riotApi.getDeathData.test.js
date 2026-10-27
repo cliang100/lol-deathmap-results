@@ -75,6 +75,39 @@ describe('getDeathData', () => {
     expect(redisSet).not.toHaveBeenCalled();
   });
 
+  it('rejects with status 404 when summoner is not found in region', async () => {
+    vi.stubGlobal(
+      'fetch',
+      routeFetch([
+        ['by-riot-id', jsonResponse({ puuid: PUUID, gameName: 'TestName', tagLine: 'T1' })],
+        ['summoners/by-puuid', jsonResponse({ message: 'not found' }, { ok: false, status: 404 })],
+        ['entries/by-puuid', jsonResponse([])],
+      ])
+    );
+
+    const err = await getDeathData('TestName', 'T1', 'na1').catch(e => e);
+    expect(err.status).toBe(404);
+    expect(err.message).toBe('No summoner found for TestName#T1 in na1');
+    expect(redisSet).not.toHaveBeenCalledWith('updated:v1:testname#t1#na1', expect.any(Number));
+    expect(redisSet).not.toHaveBeenCalledWith('testname#t1#na1#0#20', expect.anything(), { ex: 300 });
+  });
+
+  it('rejects with status 429 when summoner fetch is rate limited', async () => {
+    vi.stubGlobal(
+      'fetch',
+      routeFetch([
+        ['by-riot-id', jsonResponse({ puuid: PUUID, gameName: 'TestName', tagLine: 'T1' })],
+        ['summoners/by-puuid', jsonResponse({ message: 'rate limited' }, { ok: false, status: 429 })],
+        ['entries/by-puuid', jsonResponse([])],
+      ])
+    );
+
+    const err = await getDeathData('TestName', 'T1', 'na1').catch(e => e);
+    expect(err.status).toBe(429);
+    expect(err.message).toBe('Rate limited by Riot API. Please try again shortly.');
+    expect(redisSet).not.toHaveBeenCalled();
+  });
+
   it('encodes name and tag in the account URL', async () => {
     const fetchMock = vi.fn(async () => {
       throw new Error('should not be reached');
