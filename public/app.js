@@ -592,6 +592,9 @@ async function performSearch(gameName, tagLine, region, pushUrl = true) {
         await loadChampNames();
         saveHistoryEntry({ name: gameName, tag: tagLine, region, iconId: data.profile.iconId });
         currentSearch = { gameName, tagLine, region };
+        if (typeof data.cooldownRemaining === 'number' && data.cooldownRemaining > 0) {
+            startCooldown(data.cooldownRemaining);
+        }
         if (pushUrl) {
             const params = new URLSearchParams({ riotId: gameName, tag: tagLine, region });
             const nextSearch = `?${params}`;
