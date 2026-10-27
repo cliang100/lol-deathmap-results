@@ -47,7 +47,7 @@ export function isValidRegion(region) {
 export function isValidRiotId(gameName, tagLine) {
     if (typeof gameName !== 'string' || gameName.length === 0 || gameName.length > 64) return false;
     if (/[/\\?#%]/.test(gameName)) return false;
-    return /^[A-Za-z0-9]{1,10}$/.test(tagLine);
+    return /^[\p{L}\p{N}]{1,10}$/u.test(tagLine);
 }
 
 function updatedKey(gameName, tagLine, region) {

@@ -673,6 +673,7 @@ describe('isValidRiotId', () => {
   it('returns true for valid gameName and tagLine', () => {
     expect(isValidRiotId('Senyuuto', 'FAKER')).toBe(true);
     expect(isValidRiotId('Hide on bush', 'KR1')).toBe(true);
+    expect(isValidRiotId('name', '한국')).toBe(true);
   });
 
   it('returns false for invalid gameName', () => {
@@ -686,5 +687,7 @@ describe('isValidRiotId', () => {
   it('returns false for invalid tagLine', () => {
     expect(isValidRiotId('name', '')).toBe(false);
     expect(isValidRiotId('name', 'TOOLONGTAG12')).toBe(false);
+    expect(isValidRiotId('name', 'a b')).toBe(false);
+    expect(isValidRiotId('name', 'c?d')).toBe(false);
   });
 });
