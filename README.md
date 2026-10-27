@@ -19,6 +19,22 @@ death is plotted on the Rift map from match timeline data.
 - 5-minute Redis cache per Riot ID + region
 - Bottleneck rate limiting on Riot API calls, with 404/429 error handling
 
+## Load more
+
+Each page returns 20 matches. When more games are available, a "Load more" button fetches the next page using `start` and `count` query parameters, appending results to the current match history.
+
+## Update button
+
+The update button triggers a fresh data fetch with a 120-second cooldown stored in Redis. The cooldown survives page reloads and is reported by the API in the `cooldownRemaining` field. A 429 response from Riot includes a `Retry-After` header that starts the cooldown from the server's value. When no cooldown is running, the area under the button shows "Last updated" with the elapsed time since the data was fetched.
+
+## Summoner not found
+
+When a summoner can't be found (404 from Riot's API), a not-found view is shown instead of the results, prompting the user to check the name, tag, and region.
+
+## Linkable URLs
+
+Searches update the page URL with query parameters `riotId`, `tag`, and `region` (e.g., `?riotId=Name&tag=T1&region=na1`). Using the browser's Back/Forward buttons restores the search and re-runs it without reloading the page.
+
 ## Setup
 
 1. Clone the repo
