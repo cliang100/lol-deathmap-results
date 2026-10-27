@@ -40,6 +40,10 @@ function refreshKey(gameName, tagLine, region) {
     return `refresh:v1:${gameName}#${tagLine}#${region}`.toLowerCase();
 }
 
+function updatedKey(gameName, tagLine, region) {
+    return `updated:v1:${gameName}#${tagLine}#${region}`.toLowerCase();
+}
+
 
 export async function claimRefresh(gameName, tagLine, region) {
     const key = refreshKey(gameName, tagLine, region);
@@ -60,6 +64,11 @@ export async function releaseRefresh(gameName, tagLine, region) {
 export async function getRefreshRemaining(gameName, tagLine, region) {
     const ttl = await redis.ttl(refreshKey(gameName, tagLine, region));
     return ttl > 0 ? ttl : 0;
+}
+
+export async function getUpdatedAt(gameName, tagLine, region) {
+    const updatedAt = await redis.get(updatedKey(gameName, tagLine, region));
+    return typeof updatedAt === 'number' ? updatedAt : null;
 }
 
 
@@ -241,6 +250,9 @@ export async function getDeathData(gameName, tagLine, region = 'na1', start = 0,
     const result = start === 0
         ? { profile, matches, deaths: allDeaths, hasMore: matchIds.length === count }
         : { matches, deaths: allDeaths, hasMore: matchIds.length === count };
+    if (start === 0) {
+        await redis.set(updatedKey(gameName, tagLine, region), Date.now());
+    }
     await redis.set(cacheKey, result, { ex: 300 });
     return result;
 }

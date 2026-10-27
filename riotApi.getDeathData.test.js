@@ -19,7 +19,7 @@ vi.mock('@upstash/redis', () => {
   return { Redis: FakeRedis };
 });
 
-import { getDeathData, claimRefresh, getRefreshRemaining } from './riotApi.js';
+import { getDeathData, claimRefresh, getRefreshRemaining, getUpdatedAt } from './riotApi.js';
 
 const PUUID = 'test-puuid-123';
 
@@ -486,6 +486,48 @@ describe('getDeathData', () => {
     expect(fetchMock).toHaveBeenCalled();
     expect(redisSet).toHaveBeenCalledWith('testname#t1#na1#0#20', expect.anything(), { ex: 300 });
   });
+
+  it('writes the updated key on a fresh start=0 fetch', async () => {
+    const fetchMock = routeFetch([
+      ['by-riot-id', jsonResponse({ puuid: PUUID, gameName: 'TestName', tagLine: 'T1' })],
+      ['summoners/by-puuid', jsonResponse({ summonerLevel: 30, profileIconId: 1 })],
+      ['entries/by-puuid', jsonResponse([])],
+      ['/ids?', jsonResponse([])],
+    ]);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await getDeathData('TestName', 'T1', 'na1', 0, 20);
+
+    expect(redisSet).toHaveBeenCalledWith('updated:v1:testname#t1#na1', expect.any(Number));
+    expect(redisSet).toHaveBeenCalledWith('testname#t1#na1#0#20', expect.anything(), { ex: 300 });
+  });
+
+  it('does not write the updated key for start > 0', async () => {
+    const fetchMock = routeFetch([
+      ['by-riot-id', jsonResponse({ puuid: PUUID, gameName: 'TestName', tagLine: 'T1' })],
+      ['/ids?', jsonResponse([])],
+    ]);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await getDeathData('TestName', 'T1', 'na1', 5, 20);
+
+    expect(redisSet).not.toHaveBeenCalledWith('updated:v1:testname#t1#na1', expect.any(Number));
+    expect(redisSet).toHaveBeenCalledWith('testname#t1#na1#5#20', expect.anything(), { ex: 300 });
+  });
+
+  it('does not write the updated key on cache hit', async () => {
+    const cached = { profile: { name: 'Cached' }, deaths: [] };
+    redisGet.mockResolvedValue(cached);
+    const fetchMock = vi.fn(async () => {
+      throw new Error('fetch should not be called on cache hit');
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await getDeathData('SomeName', 'TAG', 'na1');
+
+    expect(result).toEqual(cached);
+    expect(redisSet).not.toHaveBeenCalled();
+  });
 });
 
 describe('claimRefresh', () => {
@@ -542,5 +584,25 @@ describe('getRefreshRemaining', () => {
     const result = await getRefreshRemaining('testname', 't1', 'na1');
 
     expect(result).toBe(0);
+  });
+});
+
+describe('getUpdatedAt', () => {
+  it('returns the number when get returns a number', async () => {
+    redisGet.mockResolvedValue(1700000000000);
+
+    const result = await getUpdatedAt('testname', 't1', 'na1');
+
+    expect(result).toBe(1700000000000);
+    expect(redisGet).toHaveBeenCalledWith('updated:v1:testname#t1#na1');
+  });
+
+  it('returns null when get returns null', async () => {
+    redisGet.mockResolvedValue(null);
+
+    const result = await getUpdatedAt('testname', 't1', 'na1');
+
+    expect(result).toBeNull();
+    expect(redisGet).toHaveBeenCalledWith('updated:v1:testname#t1#na1');
   });
 });
