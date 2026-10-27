@@ -19,7 +19,7 @@ vi.mock('@upstash/redis', () => {
   return { Redis: FakeRedis };
 });
 
-import { getDeathData, claimRefresh, getRefreshRemaining, getUpdatedAt } from './riotApi.js';
+import { getDeathData, claimRefresh, getRefreshRemaining, getUpdatedAt, isValidRegion } from './riotApi.js';
 
 const PUUID = 'test-puuid-123';
 
@@ -604,5 +604,21 @@ describe('getUpdatedAt', () => {
 
     expect(result).toBeNull();
     expect(redisGet).toHaveBeenCalledWith('updated:v1:testname#t1#na1');
+  });
+});
+
+describe('isValidRegion', () => {
+  it('returns true for valid region keys', () => {
+    expect(isValidRegion('na1')).toBe(true);
+    expect(isValidRegion('euw1')).toBe(true);
+    expect(isValidRegion('kr')).toBe(true);
+  });
+
+  it('returns false for unknown regions', () => {
+    expect(isValidRegion('evil.com/x?')).toBe(false);
+    expect(isValidRegion('')).toBe(false);
+    expect(isValidRegion('constructor')).toBe(false);
+    expect(isValidRegion('__proto__')).toBe(false);
+    expect(isValidRegion('NA1 ')).toBe(false);
   });
 });

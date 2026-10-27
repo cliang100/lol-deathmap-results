@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDeathData, claimRefresh, releaseRefresh, getRefreshRemaining, getUpdatedAt } from './riotApi.js';
+import { getDeathData, claimRefresh, releaseRefresh, getRefreshRemaining, getUpdatedAt, isValidRegion } from './riotApi.js';
 import { parsePaging } from './paging.js';
 import cors from 'cors';
 
@@ -11,6 +11,9 @@ app.use(express.static('public'));
 
 app.get('/api/deaths/:region/:gameName/:tagLine', async(req, res) => {
     const { region, gameName, tagLine } = req.params;
+    if (!isValidRegion(region)) {
+        return res.status(400).json({ error: 'Invalid region' });
+    }
     const { start, count } = parsePaging(req.query);
     const refresh = req.query.refresh === '1' && start === 0;
 

@@ -40,6 +40,10 @@ function refreshKey(gameName, tagLine, region) {
     return `refresh:v1:${gameName}#${tagLine}#${region}`.toLowerCase();
 }
 
+export function isValidRegion(region) {
+    return Object.hasOwn(regionToRouting, region);
+}
+
 function updatedKey(gameName, tagLine, region) {
     return `updated:v1:${gameName}#${tagLine}#${region}`.toLowerCase();
 }
@@ -123,7 +127,7 @@ export function msToClock(ms) {
 
 
 export async function getDeathData(gameName, tagLine, region = 'na1', start = 0, count = 20, refresh = false) {
-    const routing = regionToRouting[region] || 'americas';
+    const routing = regionToRouting[region];
     const cacheKey = `${gameName}#${tagLine}#${region}#${start}#${count}`.toLowerCase();
     let cached = null;
     if (!refresh) {
