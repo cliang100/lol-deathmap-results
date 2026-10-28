@@ -2,8 +2,6 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { getDeathData, claimRefresh, releaseRefresh, getRefreshRemaining, getUpdatedAt, isValidRegion, isValidRiotId } from './riotApi.js';
 import { parsePaging } from './paging.js';
-import cors from 'cors';
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -18,7 +16,6 @@ const limiter = rateLimit({
 });
 
 app.use('/api/deaths', limiter);
-app.use(cors());
 app.use(express.static('public'));
 
 app.get('/api/deaths/:region/:gameName/:tagLine', async(req, res) => {
