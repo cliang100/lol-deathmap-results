@@ -1,4 +1,5 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import { getDeathData, claimRefresh, releaseRefresh, getRefreshRemaining, getUpdatedAt, isValidRegion, isValidRiotId } from './riotApi.js';
 import { parsePaging } from './paging.js';
 import cors from 'cors';
@@ -6,6 +7,17 @@ import cors from 'cors';
 const app = express();
 const PORT = 3000;
 
+app.set('trust proxy', 1);
+
+const limiter = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 30,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    message: { error: 'Too many requests. Please slow down.' },
+});
+
+app.use('/api/deaths', limiter);
 app.use(cors());
 app.use(express.static('public'));
 
