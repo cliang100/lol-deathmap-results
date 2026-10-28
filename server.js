@@ -1,4 +1,5 @@
 import express from 'express';
+import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { getDeathData, claimRefresh, releaseRefresh, getRefreshRemaining, getUpdatedAt, isValidRegion, isValidRiotId } from './riotApi.js';
 import { parsePaging } from './paging.js';
@@ -6,6 +7,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.set('trust proxy', 1);
+
+app.use(helmet({ contentSecurityPolicy: false }));
 
 const limiter = rateLimit({
     windowMs: 60 * 1000,
