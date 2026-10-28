@@ -35,6 +35,23 @@ When a summoner can't be found (404 from Riot's API), a not-found view is shown 
 
 Searches update the page URL with query parameters `riotId`, `tag`, and `region` (e.g., `?riotId=Name&tag=T1&region=na1`). Using the browser's Back/Forward buttons restores the search and re-runs it without reloading the page.
 
+## Environment variables
+
+Create a `.env` file in the project root (it is gitignored). `.env.example` shows the required keys:
+
+- `RIOT_API_KEY` — Riot Games API key, required
+- `UPSTASH_REDIS_REST_URL` — Upstash Redis REST URL, required
+- `UPSTASH_REDIS_REST_TOKEN` — Upstash Redis REST token, required
+- `PORT` — server port, optional, defaults to `3000`
+
+## Security
+
+- Region whitelist: only regions present in `regionToRouting` (na1, euw1, eun1, kr, jp1, br1, la1, la2, oc1, tr1, ru) are accepted; anything else returns 400.
+- Riot ID validation: game name must be non-empty, at most 64 characters, and contain none of `/ \ ? # %`; tag line must be 1–10 alphanumeric/Unicode letters or digits. Invalid IDs return 404 without calling the Riot API.
+- Per-IP rate limit: 30 requests per minute on `/api/deaths`, enforced with `express-rate-limit`. `trust proxy` is set so the client IP is read from the proxy header.
+- Helmet security headers are applied (`contentSecurityPolicy` is off so Data Dragon icons and external fonts can load).
+- No open CORS: the frontend is served from the same origin as the API.
+
 ## Setup
 
 1. Clone the repo
