@@ -774,3 +774,53 @@ h1 {
   line-height: 1.6;
   color: var(--muted);
 }
+
+@media (max-width: 600px) {
+    body {
+        padding: 0 12px 24px;
+    }
+
+    .top-bar {
+        width: calc(100% + 24px);
+        margin: 0 -12px;
+    }
+
+    .page-width,
+    .match-history {
+        width: 100%;
+    }
+
+    .summoner-info {
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+    }
+
+    .summoner-info > div:first-of-type {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .summoner-name {
+        font-size: 26px;
+        overflow-wrap: anywhere;
+    }
+
+    .content-panel {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 12px;
+        order: -1;
+    }
+
+    .map-container {
+        width: 100%;
+    }
+
+    .view-toggle {
+        flex-wrap: wrap;
+    }
+
+    .left-column {
+        display: contents;
+    }
+}
