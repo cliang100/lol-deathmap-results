@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-const { redisGet, redisSet, redisMget, redisTtl, redisDel } = vi.hoisted(() => ({
+const { redisGet, redisSet, redisMget, redisTtl, redisDel, redisEval } = vi.hoisted(() => ({
   redisGet: vi.fn(),
   redisSet: vi.fn(),
   redisMget: vi.fn(),
   redisTtl: vi.fn(),
   redisDel: vi.fn(),
+  redisEval: vi.fn(),
 }));
 
 vi.mock('@upstash/redis', () => {
@@ -15,6 +16,7 @@ vi.mock('@upstash/redis', () => {
     mget = redisMget;
     ttl = redisTtl;
     del = redisDel;
+    eval = redisEval;
   }
   return { Redis: FakeRedis };
 });
@@ -42,6 +44,7 @@ beforeEach(() => {
   redisMget.mockReset().mockImplementation(async (...keys) => keys.map(() => null));
   redisTtl.mockReset().mockResolvedValue(-1);
   redisDel.mockReset().mockResolvedValue(1);
+  redisEval.mockReset().mockResolvedValue(0);
 });
 
 afterEach(() => {
@@ -216,6 +219,18 @@ describe('getDeathData', () => {
       result,
       { ex: 300 }
     );
+  });
+
+  it('rejects without calling Riot when the shared budget is used up', async () => {
+    redisEval.mockResolvedValue(42);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const err = await getDeathData('TestName', 'T1', 'na1').catch(e => e);
+
+    expect(err.status).toBe(429);
+    expect(err.retryAfter).toBe(42);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('skips non-SR matches', async () => {

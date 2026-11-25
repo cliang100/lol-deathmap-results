@@ -16,9 +16,6 @@ const regionToRouting = {
 };
 
 const limiter = new Bottleneck({
-    reservoir: 95,
-    reservoirRefreshAmount: 95,
-    reservoirRefreshInterval: 120 * 1000,
     maxConcurrent: 15,
     minTime: 55,
 });
@@ -26,6 +23,37 @@ const limiter = new Bottleneck({
 
 function limitedFetch(url) {
     return limiter.schedule(() => fetch(url, { headers: { 'X-Riot-Token': apiKey } }));
+}
+
+
+// Counters live in Redis because each serverless instance has its own memory.
+const RESERVE_SCRIPT = `
+local used = tonumber(redis.call('GET', KEYS[1]) or '0')
+local n = tonumber(ARGV[1])
+if used + n > tonumber(ARGV[2]) then
+    return math.max(redis.call('TTL', KEYS[1]), 1)
+end
+redis.call('INCRBY', KEYS[1], n)
+if used == 0 then
+    redis.call('EXPIRE', KEYS[1], ARGV[3])
+end
+return 0
+`;
+
+// Returns 0 when the calls fit in the window, otherwise the seconds until it resets.
+export async function reserve(key, n, limit, windowSec) {
+    return redis.eval(RESERVE_SCRIPT, [key], [n, limit, windowSec]);
+}
+
+// shortcut: only the 2-minute limit is shared; the per-second limit is per instance, share it if Riot 429s show up
+async function reserveRiotCalls(host, n) {
+    const retryAfter = await reserve(`riot:v1:${host}`, n, 95, 120);
+    if (retryAfter > 0) {
+        const err = new Error(`Too many searches right now. Try again in ${retryAfter}s.`);
+        err.status = 429;
+        err.retryAfter = retryAfter;
+        throw err;
+    }
 }
 
 
@@ -144,6 +172,9 @@ export async function getDeathData(gameName, tagLine, region = 'na1', start = 0,
         return cached;
     }
 
+    await reserveRiotCalls(routing, 2);
+    if (start === 0) await reserveRiotCalls(region, 2);
+
     const accountUrl = `https://${routing}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
     const accountRes = await limitedFetch(accountUrl);
     const account = await accountRes.json();
@@ -232,6 +263,8 @@ export async function getDeathData(gameName, tagLine, region = 'na1', start = 0,
             missing.push(matchId);
         }
     });
+
+    if (missing.length > 0) await reserveRiotCalls(routing, missing.length * 2);
 
     const matchResults = await Promise.all(
         missing.map(async matchId => {

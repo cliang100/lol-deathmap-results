@@ -55,7 +55,8 @@ app.get('/api/deaths/:region/:gameName/:tagLine', async(req, res) => {
         }
         console.error(err);
         if (err.status === 429) {
-            res.status(429).json({ error: err.message });
+            if (err.retryAfter) res.set('Retry-After', String(err.retryAfter));
+            res.status(429).json({ error: err.message, retryAfter: err.retryAfter });
         } else if (err.status === 404) {
             res.status(404).json({ error: err.message });
         } else {
