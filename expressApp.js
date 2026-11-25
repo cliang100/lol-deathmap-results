@@ -1,7 +1,6 @@
 import express from 'express';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
-import { getDeathData, claimRefresh, releaseRefresh, getRefreshRemaining, getUpdatedAt, isValidRegion, isValidRiotId } from './riotApi.js';
+import { reserve, getDeathData, claimRefresh, releaseRefresh, getRefreshRemaining, getUpdatedAt, isValidRegion, isValidRiotId } from './riotApi.js';
 import { parsePaging } from './paging.js';
 const app = express();
 
@@ -9,13 +8,16 @@ app.set('trust proxy', 1);
 
 app.use(helmet({ contentSecurityPolicy: false }));
 
-const limiter = rateLimit({
-    windowMs: 60 * 1000,
-    limit: 30,
-    standardHeaders: 'draft-7',
-    legacyHeaders: false,
-    message: { error: 'Too many requests. Please slow down.' },
-});
+async function limiter(req, res, next) {
+    // Netlify sets this header itself, so clients can't spoof it there
+    const ip = req.get('x-nf-client-connection-ip') ?? req.ip;
+    const retryAfter = await reserve(`ip:v1:${ip}`, 1, 30, 60);
+    if (retryAfter > 0) {
+        res.set('Retry-After', String(retryAfter));
+        return res.status(429).json({ error: 'Too many requests. Please slow down.', retryAfter });
+    }
+    next();
+}
 
 app.use('/api/deaths', limiter);
 app.use(express.static('public'));
