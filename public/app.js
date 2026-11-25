@@ -237,7 +237,8 @@ async function renderHistoryDropdown() {
         hideOnError(icon);
         row.appendChild(icon);
 
-        const name = document.createElement('span');
+        const name = document.createElement('button');
+        name.type = 'button';
         name.className = 'history-name';
         name.textContent = `${entry.name}#${entry.tag}`;
         row.appendChild(name);
@@ -286,25 +287,38 @@ function queueName(queueId) {
     }
 }
 
+function makeSelectable(row, matchId) {
+    row.tabIndex = 0;
+    row.setAttribute('role', 'button');
+    row.setAttribute('aria-pressed', String(selectedMatchId === matchId));
+    row.addEventListener('click', () => selectMatch(matchId));
+    row.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        selectMatch(matchId);
+    });
+}
+
 async function renderMatchHistory() {
     // fetch before clearing so overlapping renders can't append duplicate rows
     const v = await getDdVersion();
     if (!currentSearch) return;
 
     const listEl = document.getElementById('matchHistory');
+    const hadRowFocus = document.activeElement?.closest('#matchHistory .match-row');
     listEl.innerHTML = '';
 
     const allRow = document.createElement('div');
     allRow.className = 'match-row match-all' + (selectedMatchId === null ? ' selected' : '');
     allRow.textContent = 'All games';
-    allRow.addEventListener('click', () => selectMatch(null));
+    makeSelectable(allRow, null);
     listEl.appendChild(allRow);
 
     for (const match of lastMatches) {
         const row = document.createElement('div');
         row.className = 'match-row' + (match.win ? ' win' : ' loss') +
             (selectedMatchId === match.matchId ? ' selected' : '');
-        row.addEventListener('click', () => selectMatch(match.matchId));
+        makeSelectable(row, match.matchId);
 
         const champIcon = document.createElement('img');
         champIcon.className = 'match-champ-icon';
@@ -369,6 +383,10 @@ async function renderMatchHistory() {
         btn.textContent = loadingMore ? 'Loading...' : 'Load more';
         btn.addEventListener('click', loadMore);
         listEl.appendChild(btn);
+    }
+
+    if (hadRowFocus) {
+        listEl.querySelector('.match-row.selected').focus({ preventScroll: true });
     }
 
     if (failedGames > 0) {

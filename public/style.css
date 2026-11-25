@@ -162,6 +162,12 @@ h1 {
 
 .history-entry .history-name {
     flex: 1;
+    border: none;
+    background: transparent;
+    padding: 0;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -555,6 +561,11 @@ h1 {
 
 .match-row.loss:hover {
     background: var(--surface-2);
+}
+
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
 }
 
 .match-row.selected {
