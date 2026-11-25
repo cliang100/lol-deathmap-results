@@ -17,7 +17,7 @@ let lastMatches = [];
 let selectedMatchId = null;
 let currentMode = 'heatmap';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 let nextStart = 0;
 let hasMore = false;
 let failedGames = 0;
@@ -616,7 +616,7 @@ async function performSearch(gameName, tagLine, region, pushUrl = true) {
     loadingOverlay.style.display = 'block';
 
     try {
-        const res = await fetch(`/api/deaths/${region}/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`);
+        const res = await fetch(`/api/deaths/${region}/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}?count=${PAGE_SIZE}`);
         if (seq !== searchSeq) return;
 
         if (!res.ok) {
@@ -680,7 +680,7 @@ async function refresh() {
 
     try {
         const { gameName, tagLine, region } = search;
-        const res = await fetch(`/api/deaths/${region}/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}?refresh=1`);
+        const res = await fetch(`/api/deaths/${region}/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}?refresh=1&count=${PAGE_SIZE}`);
 
         if (!res.ok) {
             if (currentSearch !== search) return;
