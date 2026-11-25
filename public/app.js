@@ -483,6 +483,7 @@ async function loadMore() {
         hasMore = data.hasMore;
         failedGames += data.failedGames ?? 0;
         nextStart += PAGE_SIZE;
+        loadingMore = false; // before rendering, or the button stays disabled
 
         const scrollTop2 = listEl.scrollTop;
         await renderMatchHistory();
