@@ -196,6 +196,26 @@ h1 {
     color: var(--text);
 }
 
+.sample-bar {
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.sample-bar p {
+    margin: 0;
+}
+
+.sample-bar button {
+    border: none;
+    background: transparent;
+    padding: 4px;
+    color: var(--accent);
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
 .map-container {
     position: relative;
     width: min(720px, 90vw);

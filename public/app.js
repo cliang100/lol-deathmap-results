@@ -613,6 +613,42 @@ function hideNotFound() {
 }
 
 
+function setSampleMode(on) {
+    document.getElementById('sampleBtn').hidden = on;
+    document.getElementById('sampleNote').hidden = !on;
+}
+
+async function showSample(pushUrl = true) {
+    const seq = ++searchSeq;
+    stopLoading();
+    hasMore = false;
+    loadingMore = false;
+    currentSearch = null;
+    riotIdInput.value = '';
+    regionSelect.value = 'na1';
+    clearResults();
+    resetRefreshUi();
+    hideNotFound();
+
+    try {
+        const res = await fetch('/sample.json');
+        if (!res.ok) throw new Error(`sample.json returned ${res.status}`);
+        const data = await res.json();
+        await loadChampNames();
+        if (seq !== searchSeq) return;
+        currentSearch = { sample: true };
+        if (pushUrl) history.pushState(null, '', '?sample=1');
+        setSampleMode(true);
+        renderSearchResults(data);
+    } catch (err) {
+        if (seq !== searchSeq) return;
+        console.error(err);
+        const deathListEl = document.getElementById('deathList');
+        deathListEl.textContent = 'Could not load the sample data.';
+        deathListEl.style.display = 'block';
+    }
+}
+
 function stopLoading() {
     searchBtn.disabled = false;
     searchBtn.classList.remove('loading');
@@ -630,6 +666,7 @@ async function performSearch(gameName, tagLine, region, pushUrl = true) {
     }
 
     const seq = ++searchSeq;
+    setSampleMode(false);
     hasMore = false;
     nextStart = 0;
     loadingMore = false;
@@ -764,6 +801,8 @@ searchBtn.addEventListener('click', () => {
     performSearch(gameName, tagLine, region);
 });
 
+document.getElementById('sampleBtn').addEventListener('click', () => showSample());
+
 refreshBtn.addEventListener('click', () => refresh());
 
 canvas.addEventListener('mousemove', (e) => {
@@ -868,7 +907,9 @@ const urlRiotId = params.get('riotId');
 const urlTag = params.get('tag');
 const urlRegion = params.get('region');
 
-if (urlRiotId && urlTag) {
+if (params.get('sample') === '1') {
+    showSample(false);
+} else if (urlRiotId && urlTag) {
     document.getElementById('riotId').value = `${urlRiotId}#${urlTag}`;
     document.getElementById('region').value = urlRegion || 'na1';
     performSearch(urlRiotId, urlTag, urlRegion || 'na1', false);
@@ -879,11 +920,14 @@ window.addEventListener('popstate', () => {
     const riotId = urlParams.get('riotId');
     const tag = urlParams.get('tag');
     const region = urlParams.get('region') || 'na1';
-    if (riotId && tag) {
+    if (urlParams.get('sample') === '1') {
+        showSample(false);
+    } else if (riotId && tag) {
         document.getElementById('riotId').value = `${riotId}#${tag}`;
         document.getElementById('region').value = region;
         performSearch(riotId, tag, region, false);
     } else {
+        setSampleMode(false);
         searchSeq += 1; // drop any search still in flight
         stopLoading();
         clearResults();
