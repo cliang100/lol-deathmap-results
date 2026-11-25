@@ -20,6 +20,7 @@ let currentMode = 'heatmap';
 const PAGE_SIZE = 20;
 let nextStart = 0;
 let hasMore = false;
+let failedGames = 0;
 let loadingMore = false;
 let currentSearch = null;
 let lastUpdatedAt = null;
@@ -363,6 +364,13 @@ async function renderMatchHistory() {
         btn.addEventListener('click', loadMore);
         listEl.appendChild(btn);
     }
+
+    if (failedGames > 0) {
+        const failedEl = document.createElement('div');
+        failedEl.className = 'load-more-error';
+        failedEl.textContent = `${failedGames} ${failedGames === 1 ? 'game' : 'games'} couldn't load. Search again to retry.`;
+        listEl.appendChild(failedEl);
+    }
 }
 
 function selectMatch(matchId) {
@@ -457,6 +465,7 @@ async function loadMore() {
         lastMatches.push(...data.matches);
         lastDeaths.push(...data.deaths);
         hasMore = data.hasMore;
+        failedGames += data.failedGames ?? 0;
         nextStart += PAGE_SIZE;
 
         const scrollTop2 = listEl.scrollTop;
@@ -526,6 +535,7 @@ function clearResults() {
     lastDeaths = [];
     lastMatches = [];
     selectedMatchId = null;
+    failedGames = 0;
 
     const listEl = document.getElementById('matchHistory');
     listEl.innerHTML = '';
@@ -614,6 +624,7 @@ async function performSearch(gameName, tagLine, region, pushUrl = true) {
             }
         }
         hasMore = data.hasMore;
+        failedGames = data.failedGames ?? 0;
         nextStart = PAGE_SIZE;
         refreshWrap.classList.add('visible');
         renderSearchResults(data);
@@ -671,6 +682,7 @@ async function refresh() {
         if (currentSearch !== search) return;
 
         hasMore = data.hasMore;
+        failedGames = data.failedGames ?? 0;
         nextStart = PAGE_SIZE;
         renderSearchResults(data);
         lastUpdatedAt = typeof data.updatedAt === 'number' ? data.updatedAt : null;

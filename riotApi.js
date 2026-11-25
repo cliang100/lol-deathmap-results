@@ -273,12 +273,15 @@ export async function getDeathData(gameName, tagLine, region = 'na1', start = 0,
         allDeaths.push(...deaths);
     }
 
-    const result = start === 0
-        ? { profile, matches, deaths: allDeaths, hasMore: matchIds.length === count }
-        : { matches, deaths: allDeaths, hasMore: matchIds.length === count };
+    const failedGames = matchResults.filter(r => r === null).length;
+    const page = { matches, deaths: allDeaths, hasMore: matchIds.length === count, failedGames };
+    const result = start === 0 ? { profile, ...page } : page;
     if (start === 0) {
         await redis.set(updatedKey(gameName, tagLine, region), Date.now());
     }
-    await redis.set(cacheKey, result, { ex: 300 });
+    // don't cache an incomplete page; the next search retries only the failed games
+    if (failedGames === 0) {
+        await redis.set(cacheKey, result, { ex: 300 });
+    }
     return result;
 }

@@ -385,6 +385,8 @@ describe('getDeathData', () => {
     expect(result.matches.map(m => m.matchId)).toEqual([goodId]);
     const perGameSets = redisSet.mock.calls.filter(([key]) => key.startsWith('match:v1:'));
     expect(perGameSets.map(([key]) => key)).toEqual([`match:v1:${PUUID}:${goodId}`]);
+    expect(result.failedGames).toBe(1);
+    expect(redisSet).not.toHaveBeenCalledWith('testname#t1#na1#0#20', expect.anything(), expect.anything());
     for (const [url, options] of fetch.mock.calls) {
       expect(url).not.toContain('api_key');
       expect(options.headers).toHaveProperty('X-Riot-Token');
