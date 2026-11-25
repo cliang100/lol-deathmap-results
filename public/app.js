@@ -1,6 +1,7 @@
 import { gameToCanvas, intensityToColor } from './canvasMath.js';
 import { timeAgo } from './timeAgo.js';
 import { computeDeathStats } from './deathStats.js';
+import { topZoneInsight } from './insight.js';
 import { computeMatchStats, computeDeathTiming, deathPhase } from './matchStats.js';
 
 const searchBtn = document.getElementById('searchBtn');
@@ -423,6 +424,7 @@ function visibleDeaths() {
 
 function renderMap() {
     document.getElementById('dotTooltip').style.display = 'none';
+    document.getElementById('insight').textContent = topZoneInsight(currentDeaths(), lastMatches, currentPhase);
     const deaths = visibleDeaths();
     if (currentMode === 'dots') renderDots(deaths); else renderHeatmap(deaths);
 }
