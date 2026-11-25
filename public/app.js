@@ -743,7 +743,7 @@ canvas.addEventListener('mousemove', (e) => {
     renderDots(deaths, hovered);
 
     if (hovered) {
-        tooltip.textContent = `${hovered.time} - killed by ${displayName(hovered.killedBy)}`;
+        tooltip.textContent = `${hovered.time} - ${hovered.killedBy ? `killed by ${displayName(hovered.killedBy)}` : 'executed'}`;
         tooltip.style.display = 'block';
 
         const tooltipWidth = tooltip.offsetWidth;

@@ -1,6 +1,7 @@
 export function computeDeathStats(deaths) {
     const killerCounts = {};
     for (const death of deaths) {
+        if (!death.killedBy) continue; // executions have no champion killer
         killerCounts[death.killedBy] = (killerCounts[death.killedBy] || 0) + 1;
     }
     let topKiller = '--';

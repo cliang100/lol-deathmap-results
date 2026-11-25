@@ -29,4 +29,15 @@ describe('computeDeathStats', () => {
     expect(topKiller).toBe('Zed');
     expect(topCount).toBe(2);
   });
+
+  it('ignores executions, which have no killer', () => {
+    const deaths = [
+      { matchId: 'm1' },
+      { matchId: 'm2' },
+      { matchId: 'm3', killedBy: 'Ahri' },
+    ];
+    const { topKiller, killerCounts } = computeDeathStats(deaths);
+    expect(topKiller).toBe('Ahri');
+    expect(killerCounts).toEqual({ Ahri: 1 });
+  });
 });
