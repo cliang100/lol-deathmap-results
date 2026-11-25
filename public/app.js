@@ -22,6 +22,7 @@ let nextStart = 0;
 let hasMore = false;
 let failedGames = 0;
 let searchSeq = 0;
+let historySeq = 0;
 let loadingMore = false;
 let currentSearch = null;
 let lastUpdatedAt = null;
@@ -213,6 +214,7 @@ function removeHistoryEntry(entry) {
 }
 
 async function renderHistoryDropdown() {
+    const seq = ++historySeq;
     const query = riotIdInput.value.trim().toLowerCase();
     const entries = loadHistory().filter(e =>
         !query || `${e.name}#${e.tag}`.toLowerCase().includes(query)
@@ -224,6 +226,7 @@ async function renderHistoryDropdown() {
     }
     historyDropdown.hidden = false;
     const v = await getDdVersion();
+    if (seq !== historySeq) return;
     for (const entry of entries) {
         const row = document.createElement('div');
         row.className = 'history-entry';
@@ -284,6 +287,10 @@ function queueName(queueId) {
 }
 
 async function renderMatchHistory() {
+    // fetch before clearing so overlapping renders can't append duplicate rows
+    const v = await getDdVersion();
+    if (!currentSearch) return;
+
     const listEl = document.getElementById('matchHistory');
     listEl.innerHTML = '';
 
@@ -292,8 +299,6 @@ async function renderMatchHistory() {
     allRow.textContent = 'All games';
     allRow.addEventListener('click', () => selectMatch(null));
     listEl.appendChild(allRow);
-
-    const v = await getDdVersion();
 
     for (const match of lastMatches) {
         const row = document.createElement('div');
