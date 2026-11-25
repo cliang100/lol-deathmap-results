@@ -1,6 +1,4 @@
 export function computeDeathStats(deaths) {
-    const matchCount = new Set(deaths.map(d => d.matchId)).size;
-
     const killerCounts = {};
     for (const death of deaths) {
         killerCounts[death.killedBy] = (killerCounts[death.killedBy] || 0) + 1;
@@ -14,7 +12,7 @@ export function computeDeathStats(deaths) {
         }
     }
 
-    return { matchCount, killerCounts, topKiller, topCount };
+    return { killerCounts, topKiller, topCount };
 }
 
 

@@ -379,6 +379,12 @@ function selectMatch(matchId) {
     renderSelection();
 }
 
+function currentMatches() {
+    return selectedMatchId === null
+        ? lastMatches
+        : lastMatches.filter(m => m.matchId === selectedMatchId);
+}
+
 function currentDeaths() {
     return selectedMatchId === null
         ? lastDeaths
@@ -388,21 +394,23 @@ function currentDeaths() {
 function renderSelection() {
     const deaths = currentDeaths();
 
-    const { matchCount, topKiller } = computeDeathStats(deaths);
+    const matches = currentMatches();
+
+    const { topKiller } = computeDeathStats(deaths);
 
     document.getElementById('totalDeathsStat').textContent = deaths.length;
-    document.getElementById('gamesAnalyzedStat').textContent = matchCount;
+    document.getElementById('gamesAnalyzedStat').textContent = matches.length;
     document.getElementById('mostCommonKillerStat').textContent = displayName(topKiller);
 
-    if (lastMatches.length === 0) {
+    if (matches.length === 0) {
         document.getElementById('winRateStat').textContent = '--';
         document.getElementById('avgKdaStat').textContent = '--';
         document.getElementById('avgDeathsStat').textContent = '--';
         document.getElementById('avgDeathTimeStat').textContent = '--';
         document.getElementById('deathSplitStat').textContent = '--';
     } else {
-        const { winRate, avgKda } = computeMatchStats(lastMatches);
-        const timing = computeDeathTiming(deaths, selectedMatchId === null ? lastMatches.length : 1);
+        const { winRate, avgKda } = computeMatchStats(matches);
+        const timing = computeDeathTiming(deaths, matches.length);
         document.getElementById('winRateStat').textContent = `${Math.round(winRate)}%`;
         document.getElementById('avgKdaStat').textContent = avgKda.toFixed(2);
         document.getElementById('avgDeathsStat').textContent = timing.avgDeathsPerGame.toFixed(1);
