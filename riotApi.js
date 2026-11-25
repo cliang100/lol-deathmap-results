@@ -25,7 +25,7 @@ const limiter = new Bottleneck({
 
 
 function limitedFetch(url) {
-    return limiter.schedule(() => fetch(url));
+    return limiter.schedule(() => fetch(url, { headers: { 'X-Riot-Token': apiKey } }));
 }
 
 
@@ -144,7 +144,7 @@ export async function getDeathData(gameName, tagLine, region = 'na1', start = 0,
         return cached;
     }
 
-    const accountUrl = `https://${routing}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}?api_key=${apiKey}`;
+    const accountUrl = `https://${routing}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
     const accountRes = await limitedFetch(accountUrl);
     const account = await accountRes.json();
 
@@ -164,12 +164,12 @@ export async function getDeathData(gameName, tagLine, region = 'na1', start = 0,
 
     const [summonerRes, rankRes] = start === 0
         ? await Promise.all([
-            limitedFetch(`https://${region}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${puuid}?api_key=${apiKey}`),
-            limitedFetch(`https://${region}.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}?api_key=${apiKey}`),
+            limitedFetch(`https://${region}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${puuid}`),
+            limitedFetch(`https://${region}.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}`),
         ])
         : [null, null];
     if (start === 0 && !summonerRes.ok) {
-        console.log('Summoner fetch failed:', summonerRes.status, summonerRes);
+        console.log('Summoner fetch failed:', summonerRes.status);
         if (summonerRes.status === 429) {
             const err = new Error('Rate limited by Riot API. Please try again shortly.');
             err.status = 429;
@@ -203,7 +203,7 @@ export async function getDeathData(gameName, tagLine, region = 'na1', start = 0,
         }
         : null;
 
-    const idsUrl = `https://${routing}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=${start}&count=${count}&api_key=${apiKey}`;
+    const idsUrl = `https://${routing}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?start=${start}&count=${count}`;
     const idsRes = await limitedFetch(idsUrl);
     const matchIds = await idsRes.json();
 
@@ -235,7 +235,7 @@ export async function getDeathData(gameName, tagLine, region = 'na1', start = 0,
 
     const matchResults = await Promise.all(
         missing.map(async matchId => {
-            const matchRes = await limitedFetch(`https://${routing}.api.riotgames.com/lol/match/v5/matches/${matchId}?api_key=${apiKey}`);
+            const matchRes = await limitedFetch(`https://${routing}.api.riotgames.com/lol/match/v5/matches/${matchId}`);
             const match = await matchRes.json();
 
             if (!matchRes.ok) {
@@ -248,7 +248,7 @@ export async function getDeathData(gameName, tagLine, region = 'na1', start = 0,
                 return { matchId, skipped: true };
             }
 
-            const timelineRes = await limitedFetch(`https://${routing}.api.riotgames.com/lol/match/v5/matches/${matchId}/timeline?api_key=${apiKey}`);
+            const timelineRes = await limitedFetch(`https://${routing}.api.riotgames.com/lol/match/v5/matches/${matchId}/timeline`);
             const timeline = await timelineRes.json();
 
             if (!timelineRes.ok) {

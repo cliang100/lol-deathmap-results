@@ -30,7 +30,7 @@ function jsonResponse(body, { ok = true, status = 200 } = {}) {
 function routeFetch(routes) {
   return vi.fn(async (url) => {
     for (const [match, response] of routes) {
-      if (url.includes(match)) return response;
+      if (`${url}?`.includes(match)) return response;
     }
     throw new Error(`unexpected fetch: ${url}`);
   });
@@ -385,6 +385,10 @@ describe('getDeathData', () => {
     expect(result.matches.map(m => m.matchId)).toEqual([goodId]);
     const perGameSets = redisSet.mock.calls.filter(([key]) => key.startsWith('match:v1:'));
     expect(perGameSets.map(([key]) => key)).toEqual([`match:v1:${PUUID}:${goodId}`]);
+    for (const [url, options] of fetch.mock.calls) {
+      expect(url).not.toContain('api_key');
+      expect(options.headers).toHaveProperty('X-Riot-Token');
+    }
   });
 
   it('stores a skipped marker for non-SR games and reuses it without refetching', async () => {
