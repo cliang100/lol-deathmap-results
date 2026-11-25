@@ -6,3 +6,11 @@
     from = "/api/*"
     to = "/.netlify/functions/api/:splat"
     status = 200
+
+
+[[headers]]
+    for = "/*"
+    [headers.values]
+        Content-Security-Policy = "default-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https://ddragon.leagueoflegends.com; connect-src 'self' https://ddragon.leagueoflegends.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+        X-Content-Type-Options = "nosniff"
+        Referrer-Policy = "strict-origin-when-cross-origin"
