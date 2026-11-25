@@ -21,6 +21,7 @@ const PAGE_SIZE = 20;
 let nextStart = 0;
 let hasMore = false;
 let failedGames = 0;
+let searchSeq = 0;
 let loadingMore = false;
 let currentSearch = null;
 let lastUpdatedAt = null;
@@ -441,6 +442,7 @@ async function loadMore() {
     const scrollTop = listEl.scrollTop;
     await renderMatchHistory();
     listEl.scrollTop = scrollTop;
+    if (currentSearch !== search) return;
 
     try {
         const res = await fetch(
@@ -448,6 +450,7 @@ async function loadMore() {
         );
 
         if (!res.ok) {
+            if (currentSearch !== search) return;
             let message = 'Could not load more games.';
             try {
                 const errBody = await res.json();
@@ -481,6 +484,7 @@ async function loadMore() {
         listEl.scrollTop = scrollTop2;
         renderSelection();
     } catch {
+        if (currentSearch !== search) return;
         const btn = listEl.querySelector('.load-more-btn');
         if (btn) {
             btn.disabled = false;
@@ -491,7 +495,7 @@ async function loadMore() {
         errEl.textContent = 'Could not load more games.';
         listEl.appendChild(errEl);
     } finally {
-        loadingMore = false;
+        if (currentSearch === search) loadingMore = false;
     }
 }
 
@@ -571,6 +575,13 @@ function hideNotFound() {
 }
 
 
+function stopLoading() {
+    searchBtn.disabled = false;
+    searchBtn.classList.remove('loading');
+    document.getElementById('loading-overlay').style.display = 'none';
+}
+
+
 async function performSearch(gameName, tagLine, region, pushUrl = true) {
     const deathListEl = document.getElementById('deathList');
 
@@ -580,6 +591,7 @@ async function performSearch(gameName, tagLine, region, pushUrl = true) {
         return;
     }
 
+    const seq = ++searchSeq;
     hasMore = false;
     nextStart = 0;
     loadingMore = false;
@@ -599,6 +611,7 @@ async function performSearch(gameName, tagLine, region, pushUrl = true) {
 
     try {
         const res = await fetch(`/api/deaths/${region}/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`);
+        if (seq !== searchSeq) return;
 
         if (!res.ok) {
             if (res.status === 404) {
@@ -612,6 +625,7 @@ async function performSearch(gameName, tagLine, region, pushUrl = true) {
             } catch {
                 // keep the default message if the error body isn't JSON
             }
+            if (seq !== searchSeq) return;
             deathListEl.textContent = message;
             deathListEl.style.display = 'block';
             return;
@@ -619,6 +633,7 @@ async function performSearch(gameName, tagLine, region, pushUrl = true) {
 
         const data = await res.json();
         await loadChampNames();
+        if (seq !== searchSeq) return;
         saveHistoryEntry({ name: gameName, tag: tagLine, region, iconId: data.profile.iconId });
         currentSearch = { gameName, tagLine, region };
         if (typeof data.cooldownRemaining === 'number' && data.cooldownRemaining > 0) {
@@ -639,13 +654,12 @@ async function performSearch(gameName, tagLine, region, pushUrl = true) {
         lastUpdatedAt = typeof data.updatedAt === 'number' ? data.updatedAt : null;
         renderLastUpdated();
     } catch (err) {
+        if (seq !== searchSeq) return;
         console.error(err);
         deathListEl.textContent = 'Could not reach the server.';
         deathListEl.style.display = 'block';
     } finally {
-        searchBtn.disabled = false;
-        searchBtn.classList.remove('loading');
-        loadingOverlay.style.display = 'none';
+        if (seq === searchSeq) stopLoading();
     }
 }
 
@@ -816,6 +830,8 @@ window.addEventListener('popstate', () => {
         document.getElementById('region').value = region;
         performSearch(riotId, tag, region, false);
     } else {
+        searchSeq += 1; // drop any search still in flight
+        stopLoading();
         clearResults();
         resetRefreshUi();
         hideNotFound();
