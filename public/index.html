@@ -1,6 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="See where you die most on Summoner's Rift.">
     <title>LoL Death Map</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -10,7 +13,7 @@
     </header>
     <div class="search-wrap">
         <div class="search-bar">
-        <select id="region">
+        <select id="region" aria-label="Region">
             <option value="na1">NA</option>
             <option value="euw1">EUW</option>
             <option value="eun1">EUNE</option>
@@ -23,7 +26,7 @@
             <option value="tr1">TR</option>
             <option value="ru">RU</option>
         </select>
-        <input type="text" id="riotId" placeholder="Game name #Tag" autocomplete="off">
+        <input type="text" id="riotId" aria-label="Riot ID" placeholder="Game name #Tag" autocomplete="off">
         <button id="searchBtn" aria-label="Search"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg></button>
         </div>
         <div id="historyDropdown" class="history-dropdown" hidden></div>
@@ -86,8 +89,8 @@
         </div>
         <div class="content-panel">
             <div class="map-container">
-                <img src="rift.png" class="map-layer">
-                <canvas id="heatmapCanvas" class="map-layer" width="512" height="512"></canvas>
+                <img src="rift.png" alt="" class="map-layer">
+                <canvas id="heatmapCanvas" class="map-layer" width="512" height="512" role="img" aria-label="Map of death locations"></canvas>
                 <div id="dotTooltip" class="tooltip"></div>
             </div>
             <div class="legend">
@@ -96,14 +99,14 @@
                 <span>More deaths</span>
             </div>
             <div class="view-toggle">
-                <button id="heatmapModeBtn" class="active">Heatmap</button>
-                <button id="dotsModeBtn">Dots</button>
+                <button id="heatmapModeBtn" class="active" aria-pressed="true">Heatmap</button>
+                <button id="dotsModeBtn" aria-pressed="false">Dots</button>
             </div>
-            <div class="loading-overlay" id="loading-overlay">
-                <img class="loading-image" src="loading.webp">
+            <div class="loading-overlay" id="loading-overlay" role="status">
+                <img class="loading-image" src="loading.webp" alt="">
                 <p>Loading...</p>
             </div>
-            <pre id="deathList"></pre>
+            <pre id="deathList" role="status"></pre>
         </div>
     </div>
     </div>

@@ -800,18 +800,26 @@ document.addEventListener('click', (e) => {
     }
 });
 
+function setActive(btn, active) {
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-pressed', String(active));
+}
+
+function setModeButtons() {
+    setActive(document.getElementById('heatmapModeBtn'), currentMode === 'heatmap');
+    setActive(document.getElementById('dotsModeBtn'), currentMode === 'dots');
+}
+
 document.getElementById('heatmapModeBtn').addEventListener('click', () => {
     currentMode = 'heatmap';
-    document.getElementById('heatmapModeBtn').classList.add('active');
-    document.getElementById('dotsModeBtn').classList.remove('active');
+    setModeButtons();
     document.getElementById('dotTooltip').style.display = 'none';
     renderHeatmap(currentDeaths());
 });
 
 document.getElementById('dotsModeBtn').addEventListener('click', () => {
     currentMode = 'dots';
-    document.getElementById('dotsModeBtn').classList.add('active');
-    document.getElementById('heatmapModeBtn').classList.remove('active');
+    setModeButtons();
     renderDots(currentDeaths());
 });
 
