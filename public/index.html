@@ -102,6 +102,12 @@
                 <button id="heatmapModeBtn" class="active" aria-pressed="true">Heatmap</button>
                 <button id="dotsModeBtn" aria-pressed="false">Dots</button>
             </div>
+            <div class="view-toggle" id="phaseToggle" role="group" aria-label="Game phase">
+                <button data-phase="all" class="active" aria-pressed="true">All</button>
+                <button data-phase="early" aria-pressed="false">Early (0-14m)</button>
+                <button data-phase="mid" aria-pressed="false">Mid (14-25m)</button>
+                <button data-phase="late" aria-pressed="false">Late (25m+)</button>
+            </div>
             <div class="loading-overlay" id="loading-overlay" role="status">
                 <img class="loading-image" src="loading.webp" alt="">
                 <p>Loading...</p>

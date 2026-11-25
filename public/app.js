@@ -1,7 +1,7 @@
 import { gameToCanvas, intensityToColor } from './canvasMath.js';
 import { timeAgo } from './timeAgo.js';
 import { computeDeathStats } from './deathStats.js';
-import { computeMatchStats, computeDeathTiming } from './matchStats.js';
+import { computeMatchStats, computeDeathTiming, deathPhase } from './matchStats.js';
 
 const searchBtn = document.getElementById('searchBtn');
 const riotIdInput = document.getElementById('riotId');
@@ -16,6 +16,7 @@ let lastDeaths = []
 let lastMatches = [];
 let selectedMatchId = null;
 let currentMode = 'heatmap';
+let currentPhase = 'all';
 
 const PAGE_SIZE = 10;
 let nextStart = 0;
@@ -415,6 +416,17 @@ function currentDeaths() {
         : lastDeaths.filter(d => d.matchId === selectedMatchId);
 }
 
+function visibleDeaths() {
+    const deaths = currentDeaths();
+    return currentPhase === 'all' ? deaths : deaths.filter(d => deathPhase(d) === currentPhase);
+}
+
+function renderMap() {
+    document.getElementById('dotTooltip').style.display = 'none';
+    const deaths = visibleDeaths();
+    if (currentMode === 'dots') renderDots(deaths); else renderHeatmap(deaths);
+}
+
 function renderSelection() {
     const deaths = currentDeaths();
 
@@ -442,7 +454,7 @@ function renderSelection() {
         document.getElementById('deathSplitStat').textContent = `${timing.early} / ${timing.mid} / ${timing.late}`;
     }
 
-    if (currentMode === 'dots') renderDots(deaths); else renderHeatmap(deaths);
+    renderMap();
 
     const deathListEl = document.getElementById('deathList');
     if (deaths.length === 0) {
@@ -765,7 +777,7 @@ canvas.addEventListener('mousemove', (e) => {
     let closest = null;
     let closestDist = Infinity;
 
-    const deaths = currentDeaths();
+    const deaths = visibleDeaths();
     for (const death of deaths) {
         const { canvasX, canvasY } = gameToCanvas(death.x, death.y);
         const dist = Math.hypot(mouseX - canvasX, mouseY - canvasY);
@@ -831,15 +843,23 @@ function setModeButtons() {
 document.getElementById('heatmapModeBtn').addEventListener('click', () => {
     currentMode = 'heatmap';
     setModeButtons();
-    document.getElementById('dotTooltip').style.display = 'none';
-    renderHeatmap(currentDeaths());
+    renderMap();
 });
 
 document.getElementById('dotsModeBtn').addEventListener('click', () => {
     currentMode = 'dots';
     setModeButtons();
-    renderDots(currentDeaths());
+    renderMap();
 });
+
+const phaseButtons = document.querySelectorAll('#phaseToggle button');
+for (const btn of phaseButtons) {
+    btn.addEventListener('click', () => {
+        currentPhase = btn.dataset.phase;
+        phaseButtons.forEach(b => setActive(b, b === btn));
+        renderMap();
+    });
+}
 
 const params = new URLSearchParams(window.location.search);
 const urlRiotId = params.get('riotId');

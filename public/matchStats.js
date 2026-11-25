@@ -12,6 +12,12 @@ export function parseClock(str) {
     return minutes * 60 + seconds;
 }
 
+export function deathPhase(death) {
+    const sec = parseClock(death.time);
+    if (sec < EARLY_GAME_END_SEC) return 'early';
+    return sec < MID_GAME_END_SEC ? 'mid' : 'late';
+}
+
 export function computeMatchStats(matches) {
     if (matches.length === 0) {
         return { games: 0, wins: 0, winRate: 0, avgKills: 0, avgDeaths: 0, avgAssists: 0, avgKda: 0 };
@@ -44,19 +50,10 @@ export function computeDeathTiming(deaths, gameCount) {
         return { avgDeathsPerGame, avgDeathTimeSec: 0, early: 0, mid: 0, late: 0 };
     }
     let totalSec = 0;
-    let early = 0;
-    let mid = 0;
-    let late = 0;
+    const counts = { early: 0, mid: 0, late: 0 };
     for (const d of deaths) {
-        const sec = parseClock(d.time);
-        totalSec += sec;
-        if (sec < EARLY_GAME_END_SEC) {
-            early += 1;
-        } else if (sec < MID_GAME_END_SEC) {
-            mid += 1;
-        } else {
-            late += 1;
-        }
+        totalSec += parseClock(d.time);
+        counts[deathPhase(d)] += 1;
     }
-    return { avgDeathsPerGame, avgDeathTimeSec: totalSec / deaths.length, early, mid, late };
+    return { avgDeathsPerGame, avgDeathTimeSec: totalSec / deaths.length, ...counts };
 }

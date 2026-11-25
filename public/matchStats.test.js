@@ -1,4 +1,4 @@
-import { parseClock, computeMatchStats, computeDeathTiming, EARLY_GAME_END_SEC, MID_GAME_END_SEC } from './matchStats.js';
+import { parseClock, computeMatchStats, computeDeathTiming, EARLY_GAME_END_SEC, MID_GAME_END_SEC, deathPhase } from './matchStats.js';
 import { describe, it, expect } from 'vitest';
 
 describe('parseClock', () => {
@@ -72,5 +72,11 @@ describe('computeDeathTiming', () => {
     expect(result.early).toBe(0);
     expect(result.mid).toBe(1);
     expect(result.late).toBe(1);
+  });
+});
+
+describe('deathPhase', () => {
+  it('splits at 14:00 and 25:00', () => {
+    expect(['13:59', '14:00', '24:59', '25:00'].map(time => deathPhase({ time }))).toEqual(['early', 'mid', 'mid', 'late']);
   });
 });
